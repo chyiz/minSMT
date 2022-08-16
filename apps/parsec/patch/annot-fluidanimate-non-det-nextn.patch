@@ -1,0 +1,95 @@
+--- parsec-3.0-orig/pkgs/apps/fluidanimate/src/pthreads.cpp	2022-02-19 08:28:35.922657028 +0000
++++ parsec-3.0/pkgs/apps/fluidanimate/src/pthreads.cpp	2022-02-19 08:33:21.109545875 +0000
+
+@@ -29,6 +29,8 @@
+ #include <hooks.h>
+ #endif
+ 
++#include "tern/user.h"
++
+ //Uncomment to add code to check that Courant–Friedrichs–Lewy condition is satisfied at runtime
+ //#define ENABLE_CFL_CHECK
+ 
+@@ -260,6 +262,7 @@
+   pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+ 
+   mutex = new pthread_mutex_t *[numCells];
++  pcs_enter();
+   for(int i = 0; i < numCells; ++i)
+   {
+     assert(CELL_MUTEX_ID < MUTEXES_PER_CELL);
+@@ -268,6 +271,7 @@
+     for(int j = 0; j < n; ++j)
+       pthread_mutex_init(&mutex[i][j], NULL);
+   }
++  pcs_exit();
+   pthread_barrier_init(&barrier, NULL, NUM_GRIDS);
+ #ifdef ENABLE_VISUALIZATION
+   //visualization barrier is used by all NUM_GRIDS worker threads and 1 master thread
+@@ -410,6 +414,7@@
+   }
+ 
+   int count = 0;
++  pcs_enter();
+   for(int i = 0; i < numCells; ++i)
+   {
+     Cell *cell = &cells[i];
+@@ -457,6 +462,7 @@
+ 
+     }
+   }
++  pcs_exit();
+   assert(count == numParticles);
+ }
+ 
+@@ -1115,7 +1121,7 @@
+ }
+ 
+ ////////////////////////////////////////////////////////////////////////////////
++int nthreads;
+-
+ void AdvanceFrameMT(int tid)
+ {
+   //swap src and dest arrays with particles
+@@ -1127,15 +1133,21 @@
+ 
+   ClearParticlesMT(tid);
+   pthread_barrier_wait(&barrier);
++    pcs_enter();
+   RebuildGridMT(tid);
++    pcs_barrier_exit(0, nthreads);
+   pthread_barrier_wait(&barrier);
+   InitDensitiesAndForcesMT(tid);
+   pthread_barrier_wait(&barrier);
++    pcs_enter();
+   ComputeDensitiesMT(tid);
++    pcs_barrier_exit(1, nthreads);
+   pthread_barrier_wait(&barrier);
+   ComputeDensities2MT(tid);
+   pthread_barrier_wait(&barrier);
++    pcs_enter();
+   ComputeForcesMT(tid);
++    pcs_barrier_exit(2, nthreads);
+   pthread_barrier_wait(&barrier);
+   ProcessCollisionsMT(tid);
+   pthread_barrier_wait(&barrier);
+@@ -1245,6 +1257,8 @@
+ #else
+   thread_args targs[threadnum];
+ #endif
++  nthreads = threadnum;
++  slock_next_n(threadnum);
+   for(int i = 0; i < threadnum; ++i) {
+     targs[i].tid = i;
+     targs[i].frames = framenum;
+--- parsec-3.0-orig/pkgs/apps/fluidanimate/src/parsec_barrier.hpp	2022-03-22 00:56:31.091061424 +0000
++++ parsec-3.0/pkgs/apps/fluidanimate/src/parsec_barrier.hpp	2022-03-22 00:56:35.151072398 +0000
+@@ -26,7 +26,7 @@
+ //will busy-wait on a flag first. After a pre-determined amount of time has passed
+ //without any success it will fall back to waiting on a condition variable. Spinning
+ //will result in unsynchronized memory accesses to the flag.
+-#define ENABLE_SPIN_BARRIER
++// #define ENABLE_SPIN_BARRIER
+ 
+ 
+ 

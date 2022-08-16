@@ -1,0 +1,80 @@
+--- pbzip2-0.9.5/pbzip2.cpp	2020-01-27 00:32:44.000000000 +0000
++++ pbzip2-0.9.5-modified/pbzip2.cpp	2020-01-27 00:29:40.000000000 +0000
+@@ -87,6 +87,7 @@
+ #include <time.h>
+ #include <utime.h>
+ #include <bzlib.h>
++#include <tern/user.h>
+ #ifndef WIN32
+ #include <sys/time.h>
+ #include <unistd.h>
+@@ -650,6 +651,7 @@
+ 			fprintf(stderr, " *ERROR: Could not allocate memory (DecompressedData)!  Skipping...\n");
+ 			return (NULL);
+ 		}
++		soba_wait(0);
+ 
+ 		// decompress the memory buffer (verbose=0)
+ 		ret = BZ2_bzBuffToBuffDecompress(DecompressedData, &outSize, FileData, inSize, 0, Verbosity);
+@@ -675,6 +677,7 @@
+ 				return (NULL);
+ 			}
+ 
++			soba_wait(0);
+ 			// decompress the memory buffer (verbose=0)
+ 			ret = BZ2_bzBuffToBuffDecompress(DecompressedData, &outSize, FileData, inSize, 0, Verbosity);
+ 		} // while
+@@ -944,8 +947,11 @@
+ 
+ 	fifo = (queue *)q;
+ 
++	int tern_iter = 1;
+ 	for (;;)
+ 	{
++
++		tern_set_iter(tern_iter++);
+ 		pthread_mutex_lock(fifo->mut);
+ 		while (fifo->empty)
+ 		{
+@@ -1011,6 +1017,7 @@
+ 			return (NULL);
+ 		}
+ 
++		soba_wait(0);
+ 		// compress the memory buffer (blocksize=9*100k, verbose=0, worklevel=30)
+ 		ret = BZ2_bzBuffToBuffCompress(CompressedData, &outSize, FileData, inSize, BWTblockSize, Verbosity, 30);
+ 		if (ret != BZ_OK)
+@@ -1035,6 +1042,7 @@
+ 			pthread_mutex_unlock(MemMutex);
+ 		}
+ 	} // for
++	tern_set_iter(-1);
+ 	#ifdef PBZIP_DEBUG
+ 	printf ("consumer: exiting\n");
+ 	#endif
+@@ -1509,7 +1517,7 @@
+ 	#endif
+ 
+ 	// parse command line switches
+-	for (i=1; i < argc; i++)
++	for (i=1; tern_set_iter(i), i < argc; i++)
+ 	{
+ 		if (argv[i][0] == '-')
+ 		{
+@@ -1599,6 +1607,7 @@
+ 			FileListCount++;
+ 		}
+ 	} /* for */
++	tern_set_iter(-1);
+ 
+ 	if (FileListCount == 0)
+ 		usage(argv[0]);
+@@ -1668,6 +1677,8 @@
+ 	}
+ 	pthread_mutex_init(MemMutex, NULL);
+ 
++	soba_init(0, numCPU, 20*numCPU);
++
+ 	// create queue
+ 	fifo = queueInit(numCPU);
+ 	if (fifo == NULL)

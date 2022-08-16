@@ -1,0 +1,40 @@
+--- parsec-3.0-orig/pkgs/apps/x264/src/x264.c	2022-04-14 03:36:33.934645390 +0000
++++ parsec-3.0/pkgs/apps/x264/src/x264.c	2022-04-14 03:37:34.138770460 +0000
+@@ -73,6 +73,8 @@
+ #include <lsmash.h>
+ #endif
+ 
++#include "tern/user.h"
++
+ #ifdef _WIN32
+ #define CONSOLE_TITLE_SIZE 200
+ static wchar_t org_console_title[CONSOLE_TITLE_SIZE] = L"";
+@@ -388,6 +390,8 @@
+     /* Control-C handler */
+     signal( SIGINT, sigint_handler );
+ 
++    soba_init(0, param.i_threads, param.i_threads*10);
++
+     if( !ret )
+         ret = encode( &param, &opt );
+ 
+--- parsec-3.0-orig/pkgs/apps/x264/src/encoder/analyse.c	2022-04-14 03:34:14.090354894 +0000
++++ parsec-3.0/pkgs/apps/x264/src/encoder/analyse.c	2022-04-14 03:35:51.174556561 +0000
+@@ -32,6 +32,8 @@
+ #include "analyse.h"
+ #include "rdo.c"
+ 
++#include "tern/user.h"
++
+ typedef struct
+ {
+     x264_me_t me16x16;
+@@ -2930,6 +2932,8 @@
+         h->fdec->effective_qp[h->mb.i_mb_xy] = h->mb.i_qp; /* Store the real analysis QP. */
+     mb_analyse_init( h, &analysis, h->mb.i_qp );
+ 
++    soba_wait(0);
++
+     /*--------------------------- Do the analysis ---------------------------*/
+     if( h->sh.i_type == SLICE_TYPE_I )
+     {

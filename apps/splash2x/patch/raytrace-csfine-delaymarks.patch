@@ -1,0 +1,28 @@
+diff -Naur parsec-3.0/ext/splash2x/apps/raytrace/src/trace.C parsec-3.0-sigmetrics/ext/splash2x/apps/raytrace/src/trace.C
+--- parsec-3.0/ext/splash2x/apps/raytrace/src/trace.C	2021-10-27 03:54:51.174870305 -0400
++++ parsec-3.0-sigmetrics/ext/splash2x/apps/raytrace/src/trace.C	2021-10-12 16:50:54.330101867 -0400
+@@ -244,10 +244,14 @@
+ 			{
+ 			/* Convert the ray job to the ray message format. */
+ 
++			mark_task_start(1);
++			no_wait_pcs_enter();
++
+ 			xx = (REAL)x;
+ 			yy = (REAL)y;
+ 
+ 			pcs_enter();
++			
+ 			if (AntiAlias)
+ 				for (j = 0; j < NumSubRays; j++)
+ 					{
+@@ -314,6 +318,8 @@
+ 					}
+ 				}
+ 			pcs_exit();
++			no_wait_pcs_exit();
++			mark_task_end(1);
+ 			}
+ 		}
+ 	}
+ 

@@ -1,0 +1,22 @@
+--- phoenix-2.0.0/src/tpool.c	2020-11-25 18:48:58.464713552 -0500
++++ phoenix-2.0.0-modified/src/tpool.c	2020-11-25 18:33:20.747781940 -0500
+@@ -149,7 +149,6 @@
+         if (ret) 
+             goto fail_thread_create;
+     }
+-
+     return tpool;
+ 
+ fail_thread_create:
+@@ -185,8 +184,10 @@
+     for (i = 0; i < num_workers; ++i)
+     {
+         tpool->args[i] = args[i];
++        // Using the thread func argument as the signature to change the thread role
++        propose_thread_role(tpool->threads[i], tpool->thread_func);
+     }
+-    
++    tern_dummy_sync();
+ 
+     return 0;
+ }

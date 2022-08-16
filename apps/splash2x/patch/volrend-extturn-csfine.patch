@@ -1,0 +1,53 @@
+--- parsec-3.0/ext/splash2x/apps/volrend/src/adaptive.C	2021-11-14 06:04:09.000000000 +0000
++++ parsec-3.0-sigmetrics/ext/splash2x/apps/volrend/src/adaptive.C	2021-11-14 06:10:29.000000000 +0000
+@@ -142,6 +142,7 @@
+     LOCK(Global->CountLock);
+     Global->Counter--;
+     UNLOCK(Global->CountLock);
++    ext_get_turn();
+     if (!Global->Counter)
+         SETPAUSE(Global->pause)
+     while (Global->Counter) {
+@@ -150,6 +151,7 @@
+         if (!Global->Counter)
+             SETPAUSE(Global->pause)
+     }
++    ext_put_turn();
+ 
+     Ray_Trace_Non_Adaptively(my_node);
+ 
+@@ -361,9 +363,13 @@
+     xstop = MIN(xstart+num_xqueue,image_len[X]);
+     ystart = (local_node / image_section[X]) * num_yqueue;
+     ystop = MIN(ystart+num_yqueue,image_len[Y]);
++    
++    no_wait_pcs_enter();
+     ALOCK(Global->QLock,local_node);
+     work = Global->Queue[local_node][0]++;
+     AULOCK(Global->QLock,local_node);
++    no_wait_pcs_exit();
++
+     while (work < lnum_blocks) {
+       xindex = xstart + (work%lnum_xblocks)*block_xlen;
+       yindex = ystart + (work/lnum_xblocks)*block_ylen;
+@@ -378,10 +384,13 @@
+ 	  Trace_Ray(foutx,fouty,pixel_address);
+ 	}
+       }
++      no_wait_pcs_enter();
+       ALOCK(Global->QLock,local_node);
+       work = Global->Queue[local_node][0]++;
+       AULOCK(Global->QLock,local_node);
++      no_wait_pcs_exit();
+     }
++    ext_get_turn();
+     if (my_node == local_node) {
+       ALOCK(Global->QLock,num_nodes);
+       Global->Queue[num_nodes][0]--;
+@@ -405,6 +414,7 @@
+       CLEARPAUSE(Global->check)
+     }
+     SETPAUSE(Global->check)
++    ext_put_turn();
+   }
+ 

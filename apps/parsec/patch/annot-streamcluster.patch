@@ -1,0 +1,11 @@
+--- parsec-3.0-orig/pkgs/kernels/streamcluster/src/parsec_barrier.hpp	2022-03-08 04:12:44.509904348 +0000
++++ parsec-3.0/pkgs/kernels/streamcluster/src/parsec_barrier.hpp	2022-03-08 04:12:48.965906677 +0000
+@@ -26,7 +26,7 @@
+ //will busy-wait on a flag first. After a pre-determined amount of time has passed
+ //without any success it will fall back to waiting on a condition variable. Spinning
+ //will result in unsynchronized memory accesses to the flag.
+-#define ENABLE_SPIN_BARRIER
++// #define ENABLE_SPIN_BARRIER
+ 
+ 
+ 

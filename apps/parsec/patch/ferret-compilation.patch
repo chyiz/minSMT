@@ -1,0 +1,74 @@
+--- parsec-3.0-orig/pkgs/apps/ferret/src/benchmark/ferret-pthreads.c	2022-01-13 04:58:20.812116445 +0000
++++ parsec-3.0/pkgs/apps/ferret/src/benchmark/ferret-pthreads.c	2022-01-13 04:59:48.609492113 +0000
+@@ -387,7 +387,7 @@
+ 		ARRAY_BEGIN_FOREACH(rank->result.u.list, cass_list_entry_t p)
+ 		{
+ 			char *obj = NULL;
+-			if (p.dist == HUGE) continue;
++			if (p.dist == DBL_MAX) continue;
+ 			cass_map_id_to_dataobj(query_table->map, p.id, &obj);
+ 			assert(obj != NULL);
+ 			fprintf(fout, "\t%s:%g", obj, p.dist);
+--- parsec-3.0-orig/pkgs/apps/ferret/src/benchmark/ferret-serial.c	2022-01-13 05:05:42.298288874 +0000
++++ parsec-3.0/pkgs/apps/ferret/src/benchmark/ferret-serial.c	2022-01-13 05:05:54.254460867 +0000
+@@ -220,7 +220,7 @@
+ 	ARRAY_BEGIN_FOREACH(result.u.list, cass_list_entry_t p)
+ 	{
+ 		char *obj = NULL;
+-		if (p.dist == HUGE) continue;
++		if (p.dist == DBL_MAX) continue;
+ 		cass_map_id_to_dataobj(query_table->map, p.id, &obj);
+ 		assert(obj != NULL);
+ 		fprintf(fout, "\t%s:%g", obj, p.dist);
+--- parsec-3.0-before-patch/pkgs/apps/ferret/src/src/lsh/LSH_query.c	2022-02-23 03:50:36.849847432 -0500
++++ parsec-3.0/pkgs/apps/ferret/src/src/lsh/LSH_query.c	2022-02-23 03:51:42.718078525 -0500
+@@ -197,7 +197,7 @@
+ 	sx = sy = sxx = sxy = 0.0;
+ 	for (j = 0; j < K-1; j++)
+ 	{
+-		if (query->topk[K - j - 2].dist >= HUGE) break;
++		if (query->topk[K - j - 2].dist >= DBL_MAX) break;
+ 		lk = log(j+1); 
+ 		ld = log(query->topk[K - j - 2].dist);
+ 		sx += lk;
+@@ -243,7 +243,7 @@
+ 	for (i = 0; i < L; i++)
+ 	{
+ 		memset(_topk[i], 0xff, sizeof (*_topk[i]) * K);
+-		TOPK_INIT(_topk[i], dist, K, HUGE);
++		TOPK_INIT(_topk[i], dist, K, DBL_MAX);
+ 		ARRAY_BEGIN_FOREACH(lsh->hash[i].bucket[tmp2[i]], uint32_t id) {
+ 			if (!bitmap_contain(query->bitmap, id))
+ 			{
+@@ -358,7 +358,7 @@
+ 	int i, j;
+ 
+ 	memset(topk, 0xff, sizeof (*topk) * K);
+-	TOPK_INIT(topk, dist, K, HUGE);
++	TOPK_INIT(topk, dist, K, DBL_MAX);
+ 
+ //	query->CC = 0;
+ 
+--- parsec-3.0-before-patch/pkgs/apps/ferret/src/src/lsh/LSH_query_batch.c	2022-02-23 03:56:19.811063650 -0500
++++ parsec-3.0/pkgs/apps/ferret/src/src/lsh/LSH_query_batch.c	2022-02-23 03:56:42.119143671 -0500
+@@ -139,7 +139,7 @@
+ 		}
+ 		LSH_hash2_noperturb(lsh, tmp, tmp2, L);
+ 
+-		TOPK_INIT(topk[i], dist, K, HUGE);
++		TOPK_INIT(topk[i], dist, K, DBL_MAX);
+ 		for (j = 0; j < L; j++)
+ 		{
+ 			int k;
+@@ -320,9 +320,9 @@
+ 	for (i = 0; i < N; i++)
+ 	{
+ 		int j;
+-		TOPK_INIT(topk[i], dist, K, HUGE);
++		TOPK_INIT(topk[i], dist, K, DBL_MAX);
+ 		for (j = 0; j < T; j++)
+-			TOPK_INIT(ptopk[i][j], dist, K, HUGE);
++			TOPK_INIT(ptopk[i][j], dist, K, DBL_MAX);
+ 	}
+ 
+ 	//stimer_tuck(&tmr, "Stage-2");

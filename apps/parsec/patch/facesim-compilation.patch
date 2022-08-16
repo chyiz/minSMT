@@ -1,0 +1,76 @@
+diff -ruN parsec-3.0-orig/pkgs/apps/facesim/src/Public_Library/Arrays/ARRAY.h parsec-3.0/pkgs/apps/facesim/src/Public_Library/Arrays/ARRAY.h
+--- parsec-3.0-orig/pkgs/apps/facesim/src/Public_Library/Arrays/ARRAY.h	2021-11-03 01:19:37.993128481 -0400
++++ parsec-3.0/pkgs/apps/facesim/src/Public_Library/Arrays/ARRAY.h	2021-11-03 00:54:21.137530346 -0400
+@@ -100,10 +100,11 @@
+		return base_pointer + 1;
+	}
+
+	void Deallocate_Base_Pointer()
+-	{
+-		delete[] (base_pointer + 1);
+-	}
++	{
++		return;
++		delete[](base_pointer+1);
++	}
+
+	ARRAY<T>& operator= (const ARRAY<T>& source)
+	{
+--- parsec-3.0-orig/pkgs/apps/facesim/src/Public_Library/Read_Write/FILE_UTILITIES.cpp  2022-02-23 07:55:06.527086774 +0000
++++ parsec-3.0/pkgs/apps/facesim/src/Public_Library/Read_Write/FILE_UTILITIES.cpp       2022-02-23 07:56:00.870841418 +0000
+@@ -98,7 +98,16 @@
+
+ bool Directory_Exists (const std::string& dirname)
+ {
+-	return std::ifstream (dirname.c_str()) != 0;
++	//return std::ifstream (dirname.c_str()) != 0; //does not compile under gcc version 5.2 and later
++	std::ifstream is;
++	is.open(dirname.c_str());
++	
++	if(is.is_open()) {
++	        is.close();
++	        return true;
++	}
++	
++	return false;
+ }
+
+ bool Create_Directory (const std::string& dirname, bool exit_on_fail)
+--- parsec-3.0-orig/pkgs/apps/facesim/src/Public_Library/Read_Write/FILE_UTILITIES.h    2022-02-23 07:53:26.098718442 +0000
++++ parsec-3.0/pkgs/apps/facesim/src/Public_Library/Read_Write/FILE_UTILITIES.h 2022-02-23 07:58:08.375009739 +0000
+@@ -70,7 +70,16 @@
+
+ inline bool File_Exists_Ignoring_Compression_Suffix (const std::string& filename)
+ {
+-	return std::ifstream (filename.c_str()) != 0;
++	//return std::ifstream (filename.c_str()) != 0; //does not compile under gcc 5.2 and later
++	std::ifstream is;
++	is.open(filename.c_str());
++	
++	if(is.is_open()) {
++	        is.close();
++	        return true;
++	}
++	
++	return false;
+ }
+
+ inline bool File_Exists (const std::string& filename)
+@@ -80,7 +89,16 @@
+
+ inline bool File_Writable_Ignoring_Compression_Suffix (const std::string& filename)
+ {
+-	return std::ofstream (filename.c_str()) != 0;
++	//return std::ofstream (filename.c_str()) != 0; //does not compile under gcc 5.2 and later
++	std::ofstream os;
++	os.open(filename.c_str());
++	
++	if(os.is_open()) {
++	        os.close();
++	        return true;
++	}
++	
++	return false;
+ }
+
+ inline bool File_Writable (const std::string& filename)

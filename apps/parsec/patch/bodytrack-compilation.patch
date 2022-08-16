@@ -1,0 +1,532 @@
+diff -ruN parsec-2.0-orig/pkgs/apps/bodytrack/src/configure.ac parsec-2.0/pkgs/apps/bodytrack/src/configure.ac
+--- parsec-2.0-orig/pkgs/apps/bodytrack/src/configure.ac	2008-10-07 19:20:24.000000000 -0400
++++ parsec-2.0/pkgs/apps/bodytrack/src/configure.ac	2021-11-02 01:04:23.857248896 -0400
+@@ -72,6 +72,8 @@
+ # Never warn about unknown pragmas
+ CXXFLAGS="$CXXFLAGS -Wno-unknown-pragmas"
+ 
++CXXFLAGS="$CXXFLAGS -std=c++11"
++
+ # Make sure VPATH is always defined
+ #if test "x$VPATH" == "x"; then
+ #  VPATH="."
+diff -ruN parsec-2.0-orig/pkgs/apps/bodytrack/src/TrackingBenchmark/threads/Barrier.cpp parsec-2.0/pkgs/apps/bodytrack/src/TrackingBenchmark/threads/Barrier.cpp
+--- parsec-2.0-orig/pkgs/apps/bodytrack/src/TrackingBenchmark/threads/Barrier.cpp	2007-05-21 15:10:43.000000000 -0400
++++ parsec-2.0/pkgs/apps/bodytrack/src/TrackingBenchmark/threads/Barrier.cpp	2021-11-02 01:04:23.821247363 -0400
+@@ -25,7 +25,7 @@
+ 
+ namespace threads {
+ 
+-Barrier::Barrier(int _n) throw(BarrierException) {
++Barrier::Barrier(int _n)  {
+ #if defined(HAVE_LIBPTHREAD)
+   int rv;
+ 
+@@ -66,7 +66,7 @@
+ #endif //HAVE_LIBPTHREAD
+ }
+ 
+-Barrier::~Barrier() throw(BarrierException) {
++Barrier::~Barrier()  {
+ #if defined(HAVE_LIBPTHREAD)
+   int rv;
+ 
+@@ -97,7 +97,7 @@
+ }
+ 
+ //Wait at a barrier
+-bool Barrier::Wait() throw(BarrierException) {
++bool Barrier::Wait()  {
+ #if defined(HAVE_LIBPTHREAD)
+   int rv;
+ 
+diff -ruN parsec-2.0-orig/pkgs/apps/bodytrack/src/TrackingBenchmark/threads/Barrier.h parsec-2.0/pkgs/apps/bodytrack/src/TrackingBenchmark/threads/Barrier.h
+--- parsec-2.0-orig/pkgs/apps/bodytrack/src/TrackingBenchmark/threads/Barrier.h	2007-05-27 17:35:48.000000000 -0400
++++ parsec-2.0/pkgs/apps/bodytrack/src/TrackingBenchmark/threads/Barrier.h	2021-11-02 01:04:23.821247363 -0400
+@@ -30,41 +30,41 @@
+ //General barrier exception
+ class BarrierException: public std::exception {
+   public:
+-    virtual const char *what() const throw() {return "Unspecified barrier error";}
++    virtual const char *what() const noexcept  {return "Unspecified barrier error";}
+ };
+ 
+ //Barrier initialization error
+ class BarrierInitException: public BarrierException {
+   public:
+-    virtual const char *what() const throw() {return "Unspecified error while initializing barrier";}
++    virtual const char *what() const noexcept  {return "Unspecified error while initializing barrier";}
+ };
+ 
+ //Barrier destruction error
+ class BarrierDestroyException: public BarrierException {
+   public:
+-    virtual const char *what() const throw() {return "Unspecified error while destroying barrier";}
++    virtual const char *what() const noexcept  {return "Unspecified error while destroying barrier";}
+ };
+ 
+ //Resources exhausted
+ class BarrierResourceException: public BarrierException {
+   public:
+-    virtual const char *what() const throw() {return "Insufficient resources";}
++    virtual const char *what() const noexcept  {return "Insufficient resources";}
+ };
+ 
+ //Unknown error
+ class BarrierUnknownException: public BarrierException {
+   public:
+-    virtual const char *what() const throw() {return "Unknown error";}
++    virtual const char *what() const noexcept  {return "Unknown error";}
+ };
+ 
+ //A standard barrier
+ class Barrier {
+   public:
+-    Barrier(int) throw(BarrierException);
+-    ~Barrier() throw(BarrierException);
++    Barrier(int) ;
++    ~Barrier() ;
+ 
+     //Wait at a barrier, will return true for exactly one thread, false for all other threads
+-    bool Wait() throw(BarrierException);
++    bool Wait() ;
+     //Get number of threads required to enter the barrier
+     const int nThreads() const;
+ 
+diff -ruN parsec-2.0-orig/pkgs/apps/bodytrack/src/TrackingBenchmark/threads/Condition.cpp parsec-2.0/pkgs/apps/bodytrack/src/TrackingBenchmark/threads/Condition.cpp
+--- parsec-2.0-orig/pkgs/apps/bodytrack/src/TrackingBenchmark/threads/Condition.cpp	2007-05-15 17:09:15.000000000 -0400
++++ parsec-2.0/pkgs/apps/bodytrack/src/TrackingBenchmark/threads/Condition.cpp	2021-11-02 01:04:23.821247363 -0400
+@@ -25,7 +25,7 @@
+ 
+ namespace threads {
+ 
+-Condition::Condition(Mutex &_M) throw(CondException) {
++Condition::Condition(Mutex &_M)  {
+   int rv;
+ 
+   M = &_M;
+@@ -74,7 +74,7 @@
+ #endif //HAVE_LIBPTHREAD
+ }
+ 
+-Condition::~Condition() throw(CondException) {
++Condition::~Condition()  {
+ #if defined(HAVE_LIBPTHREAD)
+   int rv;
+ 
+@@ -111,7 +111,7 @@
+ 
+ //Wake up exactly one thread, return number of threads currently waiting (before wakeup)
+ //If no more threads are waiting, the notification is lost
+-int Condition::NotifyOne() throw(CondException) {
++int Condition::NotifyOne()  {
+ #if defined(HAVE_LIBPTHREAD)
+   int slack;
+   int rv;
+@@ -155,7 +155,7 @@
+ }
+ 
+ //Wake up all threads, return number of threads currently waiting (before wakeup)
+-int Condition::NotifyAll() throw(CondException) {
++int Condition::NotifyAll()  {
+ #if defined(HAVE_LIBPTHREAD)
+   int slack;
+   int rv;
+@@ -199,7 +199,7 @@
+ }
+ 
+ //Wait until either NotifyOne() or NotifyAll() is executed
+-void Condition::Wait() throw(CondException, MutexException) {
++void Condition::Wait()  {
+ #if defined(HAVE_LIBPTHREAD)
+   int rv;
+ 
+diff -ruN parsec-2.0-orig/pkgs/apps/bodytrack/src/TrackingBenchmark/threads/Condition.h parsec-2.0/pkgs/apps/bodytrack/src/TrackingBenchmark/threads/Condition.h
+--- parsec-2.0-orig/pkgs/apps/bodytrack/src/TrackingBenchmark/threads/Condition.h	2007-05-27 17:35:48.000000000 -0400
++++ parsec-2.0/pkgs/apps/bodytrack/src/TrackingBenchmark/threads/Condition.h	2021-11-02 01:04:23.821247363 -0400
+@@ -31,48 +31,48 @@
+ //General condition exception
+ class CondException: public std::exception {
+   public:
+-    virtual const char *what() const throw() {return "Unspecified condition error";}
++    virtual const char *what() const noexcept  {return "Unspecified condition error";}
+ };
+ 
+ //Condition initialization error
+ class CondInitException: public CondException {
+   public:
+-    virtual const char *what() const throw() {return "Unspecified error while initializing condition";}
++    virtual const char *what() const noexcept  {return "Unspecified error while initializing condition";}
+ };
+ 
+ //Condition destruction error
+ class CondDestroyException: public CondException {
+   public:
+-    virtual const char *what() const throw() {return "Unspecified error while destroying condition";}
++    virtual const char *what() const noexcept  {return "Unspecified error while destroying condition";}
+ };
+ 
+ //Resources exhausted
+ class CondResourceException: public CondException {
+   public:
+-    virtual const char *what() const throw() {return "Insufficient resources";}
++    virtual const char *what() const noexcept  {return "Insufficient resources";}
+ };
+ 
+ //Unknown error
+ class CondUnknownException: public CondException {
+   public:
+-    virtual const char *what() const throw() {return "Unknown error";}
++    virtual const char *what() const noexcept  {return "Unknown error";}
+ };
+ 
+ 
+ //A standard condition variable
+ class Condition {
+   public:
+-    Condition(Mutex &) throw(CondException);
+-    ~Condition() throw(CondException);
++    Condition(Mutex &) ;
++    ~Condition() ;
+ 
+     //Wake up exactly one thread, return number of threads currently waiting (before wakeup)
+     //If no more threads are waiting, the notification is lost
+-    int NotifyOne() throw(CondException);
++    int NotifyOne() ;
+     //Wake up all threads, return number of threads currently waiting (before wakeup)
+-    int NotifyAll() throw(CondException);
++    int NotifyAll() ;
+ 
+     //Wait until either NotifyOne() or NotifyAll() is executed
+-    void Wait() throw(CondException, MutexException);
++    void Wait() ;
+   private:
+     //the mutex associated with the condition variable
+     Mutex *M;
+diff -ruN parsec-2.0-orig/pkgs/apps/bodytrack/src/TrackingBenchmark/threads/Mutex.cpp parsec-2.0/pkgs/apps/bodytrack/src/TrackingBenchmark/threads/Mutex.cpp
+--- parsec-2.0-orig/pkgs/apps/bodytrack/src/TrackingBenchmark/threads/Mutex.cpp	2007-05-15 17:09:15.000000000 -0400
++++ parsec-2.0/pkgs/apps/bodytrack/src/TrackingBenchmark/threads/Mutex.cpp	2021-11-02 01:04:23.825247533 -0400
+@@ -24,7 +24,7 @@
+ 
+ namespace threads {
+ 
+-Mutex::Mutex() throw(MutexException) {
++Mutex::Mutex()  {
+ #if defined(HAVE_LIBPTHREAD)
+   int rv;
+ 
+@@ -60,7 +60,7 @@
+ #endif //HAVE_LIBPTHREAD
+ }
+ 
+-Mutex::~Mutex() throw(MutexException) {
++Mutex::~Mutex()  {
+ #if defined(HAVE_LIBPTHREAD)
+   int rv;
+ 
+@@ -89,7 +89,7 @@
+ }
+ 
+ //Enter a critical region
+-void Mutex::Lock() throw(MutexException) {
++void Mutex::Lock()  {
+ #if defined(HAVE_LIBPTHREAD)
+   int rv;
+ 
+@@ -125,7 +125,7 @@
+ }
+ 
+ //Try to acquire the lock, return true if successful
+-bool Mutex::TryLock() throw(MutexException) {
++bool Mutex::TryLock()  {
+ #if defined(HAVE_LIBPTHREAD)
+   int rv;
+ 
+@@ -161,7 +161,7 @@
+ }
+ 
+ //Leave a critical region
+-void Mutex::Unlock() throw(MutexException) {
++void Mutex::Unlock()  {
+ #if defined(HAVE_LIBPTHREAD)
+   int rv;
+ 
+diff -ruN parsec-2.0-orig/pkgs/apps/bodytrack/src/TrackingBenchmark/threads/Mutex.h parsec-2.0/pkgs/apps/bodytrack/src/TrackingBenchmark/threads/Mutex.h
+--- parsec-2.0-orig/pkgs/apps/bodytrack/src/TrackingBenchmark/threads/Mutex.h	2007-05-27 17:35:48.000000000 -0400
++++ parsec-2.0/pkgs/apps/bodytrack/src/TrackingBenchmark/threads/Mutex.h	2021-11-02 01:04:23.825247533 -0400
+@@ -34,43 +34,43 @@
+ //General mutex exception
+ class MutexException: public std::exception {
+   public:
+-    virtual const char *what() const throw() {return "Unspecified mutex error";}
++    virtual const char *what() const noexcept  {return "Unspecified mutex error";}
+ };
+ 
+ //Mutex initialization error
+ class MutexInitException: public MutexException {
+   public:
+-    virtual const char *what() const throw() {return "Unspecified error while initializing mutex";}
++    virtual const char *what() const noexcept  {return "Unspecified error while initializing mutex";}
+ };
+ 
+ //Mutex destruction error
+ class MutexDestroyException: public MutexException {
+   public:
+-    virtual const char *what() const throw() {return "Unspecified error while destroying mutex";}
++    virtual const char *what() const noexcept  {return "Unspecified error while destroying mutex";}
+ };
+ 
+ //Resources exhausted
+ class MutexResourceException: public MutexException {
+   public:
+-    virtual const char *what() const throw() {return "Insufficient resources";}
++    virtual const char *what() const noexcept  {return "Insufficient resources";}
+ };
+ 
+ //General locking error
+ class MutexLockingException: public MutexException {
+   public:
+-    virtual const char *what() const throw() {return "Unspecified locking error";}
++    virtual const char *what() const noexcept  {return "Unspecified locking error";}
+ };
+ 
+ //Deadlock detected
+ class MutexDeadlockException: public MutexLockingException {
+   public:
+-    virtual const char *what() const throw() {return "Deadlock detected";}
++    virtual const char *what() const noexcept  {return "Deadlock detected";}
+ };
+ 
+ //Unknown error
+ class MutexUnknownException: public MutexException {
+   public:
+-    virtual const char *what() const throw() {return "Unknown error";}
++    virtual const char *what() const noexcept  {return "Unknown error";}
+ };
+ 
+ //Condition class requires access to mutex, forward declaration for friendship
+@@ -82,15 +82,15 @@
+   friend class Condition;
+ 
+   public:
+-    Mutex() throw(MutexException);
+-    ~Mutex() throw(MutexException);
++    Mutex() ;
++    ~Mutex() ;
+ 
+     //Enter a critical region
+-    void Lock() throw(MutexException);
++    void Lock() ;
+     //Leave a critical region
+-    void Unlock() throw(MutexException);
++    void Unlock() ;
+     //Try to acquire the lock, return true if successful
+-    bool TryLock() throw(MutexException);
++    bool TryLock() ;
+ 
+   private:
+ #if defined(HAVE_LIBPTHREAD)
+diff -ruN parsec-2.0-orig/pkgs/apps/bodytrack/src/TrackingBenchmark/threads/RWLock.cpp parsec-2.0/pkgs/apps/bodytrack/src/TrackingBenchmark/threads/RWLock.cpp
+--- parsec-2.0-orig/pkgs/apps/bodytrack/src/TrackingBenchmark/threads/RWLock.cpp	2007-04-26 16:55:15.000000000 -0400
++++ parsec-2.0/pkgs/apps/bodytrack/src/TrackingBenchmark/threads/RWLock.cpp	2021-11-02 01:04:23.825247533 -0400
+@@ -19,7 +19,7 @@
+ 
+ namespace threads {
+ 
+-RWLock::RWLock() throw(RWLockException) {
++RWLock::RWLock()  {
+   int rv;
+ 
+   rv = pthread_rwlock_init(&l, NULL);
+@@ -52,7 +52,7 @@
+ 
+ }
+ 
+-RWLock::~RWLock() throw(RWLockException) {
++RWLock::~RWLock()  {
+   int rv;
+ 
+   rv = pthread_rwlock_destroy(&l);
+@@ -77,7 +77,7 @@
+ }
+ 
+ //Enter a critical region for reading
+-void RWLock::ReadLock() throw(RWLockException) {
++void RWLock::ReadLock()  {
+   int rv;
+ 
+   rv = pthread_rwlock_rdlock(&l);
+@@ -109,7 +109,7 @@
+ }
+ 
+ //Try to acquire the lock for reading, return true if successful
+-bool RWLock::TryReadLock() throw(RWLockException) {
++bool RWLock::TryReadLock()  {
+   int rv;
+ 
+   rv = pthread_rwlock_tryrdlock(&l);
+@@ -141,7 +141,7 @@
+ }
+ 
+ //Enter a critical region for writing
+-void RWLock::WriteLock() throw(RWLockException) {
++void RWLock::WriteLock()  {
+   int rv;
+ 
+   rv = pthread_rwlock_wrlock(&l);
+@@ -172,7 +172,7 @@
+ }
+ 
+ //Try to acquire the lock for writing, return true if successful
+-bool RWLock::TryWriteLock() throw(RWLockException) {
++bool RWLock::TryWriteLock()  {
+   int rv;
+ 
+   rv = pthread_rwlock_trywrlock(&l);
+@@ -203,7 +203,7 @@
+ }
+ 
+ //Leave a critical region
+-void RWLock::Unlock() throw(RWLockException) {
++void RWLock::Unlock()  {
+   int rv;
+ 
+   rv = pthread_rwlock_unlock(&l);
+diff -ruN parsec-2.0-orig/pkgs/apps/bodytrack/src/TrackingBenchmark/threads/RWLock.h parsec-2.0/pkgs/apps/bodytrack/src/TrackingBenchmark/threads/RWLock.h
+--- parsec-2.0-orig/pkgs/apps/bodytrack/src/TrackingBenchmark/threads/RWLock.h	2007-04-26 16:55:15.000000000 -0400
++++ parsec-2.0/pkgs/apps/bodytrack/src/TrackingBenchmark/threads/RWLock.h	2021-11-02 01:04:23.825247533 -0400
+@@ -24,61 +24,61 @@
+ //General rwlock exception
+ class RWLockException: public std::exception {
+   public:
+-    virtual const char *what() const throw() {return "Unspecified rwlock error";}
++    virtual const char *what() const noexcept  {return "Unspecified rwlock error";}
+ };
+ 
+ //RWLock initialization error
+ class RWLockInitException: public RWLockException {
+   public:
+-    virtual const char *what() const throw() {return "Unspecified error while initializing rwlock";}
++    virtual const char *what() const noexcept  {return "Unspecified error while initializing rwlock";}
+ };
+ 
+ //RWLock destruction error
+ class RWLockDestroyException: public RWLockException {
+   public:
+-    virtual const char *what() const throw() {return "Unspecified error while destroying rwlock";}
++    virtual const char *what() const noexcept  {return "Unspecified error while destroying rwlock";}
+ };
+ 
+ //Resources exhausted
+ class RWLockResourceException: public RWLockException {
+   public:
+-    virtual const char *what() const throw() {return "Insufficient resources";}
++    virtual const char *what() const noexcept  {return "Insufficient resources";}
+ };
+ 
+ //General locking error
+ class RWLockLockingException: public RWLockException {
+   public:
+-    virtual const char *what() const throw() {return "Unspecified locking error";}
++    virtual const char *what() const noexcept  {return "Unspecified locking error";}
+ };
+ 
+ //Deadlock detected
+ class RWLockDeadlockException: public RWLockLockingException {
+   public:
+-    virtual const char *what() const throw() {return "Deadlock detected";}
++    virtual const char *what() const noexcept  {return "Deadlock detected";}
+ };
+ 
+ //Unknown error
+ class RWLockUnknownException: public RWLockException {
+   public:
+-    virtual const char *what() const throw() {return "Unknown error";}
++    virtual const char *what() const noexcept  {return "Unknown error";}
+ };
+ 
+ //A standard rwlock
+ class RWLock: public RWLockType {
+   public:
+-    RWLock() throw(RWLockException);
+-    ~RWLock() throw(RWLockException);
++    RWLock() ;
++    ~RWLock() ;
+ 
+     //Enter a critical region for reading
+-    void ReadLock() throw(RWLockException);
++    void ReadLock() ;
+     //Try to acquire the lock for reading, return true if successful
+-    bool TryReadLock() throw(RWLockException);
++    bool TryReadLock() ;
+     //Enter a critical region for writing
+-    void WriteLock() throw(RWLockException);
++    void WriteLock() ;
+     //Try to acquire the lock for writing, return true if successful
+-    bool TryWriteLock() throw(RWLockException);
++    bool TryWriteLock() ;
+     //Leave a critical region
+-    void Unlock() throw(RWLockException);
++    void Unlock() ;
+ 
+   private:
+     pthread_rwlock_t l;
+diff -ruN parsec-2.0-orig/pkgs/apps/bodytrack/src/TrackingBenchmark/threads/Thread.cpp parsec-2.0/pkgs/apps/bodytrack/src/TrackingBenchmark/threads/Thread.cpp
+--- parsec-2.0-orig/pkgs/apps/bodytrack/src/TrackingBenchmark/threads/Thread.cpp	2007-05-15 17:09:15.000000000 -0400
++++ parsec-2.0/pkgs/apps/bodytrack/src/TrackingBenchmark/threads/Thread.cpp	2021-11-02 01:04:23.833247874 -0400
+@@ -48,7 +48,7 @@
+ 
+ 
+ //Constructor, expects a threadable object as argument
+-Thread::Thread(Runnable &_tobj) throw(ThreadCreationException) : tobj(_tobj) {
++Thread::Thread(Runnable &_tobj) : tobj(_tobj) {
+ #if defined(HAVE_LIBPTHREAD)
+   if(pthread_create(&t, NULL, &thread_entry, (void *)&tobj)) {
+     ThreadCreationException e;
+diff -ruN parsec-2.0-orig/pkgs/apps/bodytrack/src/TrackingBenchmark/threads/Thread.h parsec-2.0/pkgs/apps/bodytrack/src/TrackingBenchmark/threads/Thread.h
+--- parsec-2.0-orig/pkgs/apps/bodytrack/src/TrackingBenchmark/threads/Thread.h	2007-05-27 17:35:48.000000000 -0400
++++ parsec-2.0/pkgs/apps/bodytrack/src/TrackingBenchmark/threads/Thread.h	2021-11-02 01:04:23.833247874 -0400
+@@ -45,7 +45,7 @@
+ //Exception which gets thrown if thread creation fails
+ class ThreadCreationException: public std::exception {
+   public:
+-    virtual const char *what() const throw() {return "Error creating thread";}
++    virtual const char *what() const noexcept  {return "Error creating thread";}
+ };
+ 
+ //A thread
+@@ -59,7 +59,7 @@
+     unsigned int t_id;
+ #endif //HAVE_LIBPTHREAD
+   public:
+-    Thread(Runnable &) throw(ThreadCreationException);
++    Thread(Runnable &) ;
+ 
+     //Wait until Thread object has finished
+     void Join();
+diff -ruN parsec-2.0-orig/pkgs/apps/bodytrack/src/TrackingBenchmark/threads/WorkerGroup.h parsec-2.0/pkgs/apps/bodytrack/src/TrackingBenchmark/threads/WorkerGroup.h
+--- parsec-2.0-orig/pkgs/apps/bodytrack/src/TrackingBenchmark/threads/WorkerGroup.h	2007-05-23 22:11:24.000000000 -0400
++++ parsec-2.0/pkgs/apps/bodytrack/src/TrackingBenchmark/threads/WorkerGroup.h	2021-11-02 01:04:23.837248044 -0400
+@@ -31,19 +31,19 @@
+ //General group exception
+ class WorkerGroupException: public std::exception {
+   public:
+-    virtual const char *what() const throw() {return "Unspecified worker group exception";}
++    virtual const char *what() const noexcept  {return "Unspecified worker group exception";}
+ };
+ 
+ //General group exception
+ class WorkerGroupCommandException: public WorkerGroupException {
+   public:
+-    virtual const char *what() const throw() {return "Illegal command exception";}
++    virtual const char *what() const noexcept  {return "Illegal command exception";}
+ };
+ 
+ //General group exception
+ class WorkerGroupCommandRangeException: public WorkerGroupCommandException {
+   public:
+-    virtual const char *what() const throw() {return "Command out of range";}
++    virtual const char *what() const noexcept  {return "Command out of range";}
+ };
+ 
+ class Threadable {

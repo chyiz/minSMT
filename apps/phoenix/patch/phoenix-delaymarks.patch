@@ -1,0 +1,54 @@
+--- phoenix-2.0.0/src/map_reduce.c	2020-11-25 18:51:37.803443860 -0500
++++ phoenix-2.0.0-modified/src/map_reduce.c	2020-11-25 18:54:12.594307410 -0500
+@@ -769,6 +769,8 @@
+         return false;
+     }
+ 
++    mark_task_start(1);
++
+     curr_task = env->num_map_tasks++;
+     env->tinfo[thread_index].curr_task = curr_task;
+ 
+@@ -788,6 +790,7 @@
+ 
+     dprintf("Task %d: cpu_id -> %d - Done\n", curr_task, th_arg->cpu_id);
+ 
++    mark_task_end(1);
+     return true;
+ }
+ 
+@@ -899,6 +902,7 @@
+         /* No more reduce tasks. */
+         return false;
+     }
++    mark_task_start(2);
+ 
+     curr_reduce_task = (intptr_t)reduce_task.id;
+ 
+@@ -994,6 +998,8 @@
+             mem_free(arr->arr);
+     }
+ 
++    mark_task_end(2);
++
+     return true;
+ }
+ 
+@@ -1079,6 +1085,8 @@
+     uintptr_t       work_time = 0;
+ #endif
+ 
++    mark_task_start(3);
++
+     env->tinfo[thread_index].tid = pthread_self();
+ 
+     /* Bind thread.
+@@ -1127,6 +1135,8 @@
+     /* Unbind thread. */
+     CHECK_ERROR (proc_unbind_thread () != 0);
+ 
++    mark_task_end(3);
++
+ #ifdef TIMING
+     thread_timing_t *timing = calloc (1, sizeof (thread_timing_t));
+     timing->work_time = work_time;

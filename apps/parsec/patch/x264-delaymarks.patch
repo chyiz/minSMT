@@ -1,0 +1,78 @@
+--- parsec-3.0-orig/pkgs/apps/x264/src/encoder/analyse.c	2022-04-14 03:41:55.723843740 +0000
++++ parsec-3.0/pkgs/apps/x264/src/encoder/analyse.c	2022-04-14 04:01:11.834598156 +0000
+@@ -358,13 +358,20 @@
+             {
+                 int pix_y = (h->mb.i_mb_y | PARAM_INTERLACED) * 16;
+                 int thresh = pix_y + h->param.analyse.i_mv_range_thread;
++
++                unmark_task(1);
++                
+                 for( int i = (h->sh.i_type == SLICE_TYPE_B); i >= 0; i-- )
+                     for( int j = 0; j < h->i_ref[i]; j++ )
+                     {
++                        slock_next_n( (((j+1)<h->i_ref[i])?1:0 + (i>0)?1:0) * 100);
+                         int completed = x264_frame_cond_wait( h->fref[i][j]->orig, thresh );
+                         thread_mvy_range = X264_MIN( thread_mvy_range, completed - pix_y );
++                        slock_next_n(4);
+                     }
+ 
++                mark_task_start(1);
++
+                 if( h->param.b_deterministic )
+                     thread_mvy_range = h->param.analyse.i_mv_range_thread;
+                 if( PARAM_INTERLACED )
+--- parsec-3.0-orig/pkgs/apps/x264/src/encoder/encoder.c	2022-04-14 03:45:24.001680773 +0000
++++ parsec-3.0/pkgs/apps/x264/src/encoder/encoder.c	2022-04-14 03:56:57.457577206 +0000
+@@ -2495,8 +2495,12 @@
+             XCHG( pixel *, h->intra_border_backup[1][i], h->intra_border_backup[4][i] );
+         }
+ 
+-    if( h->i_thread_frames > 1 && h->fdec->b_kept_as_ref )
++    if( h->i_thread_frames > 1 && h->fdec->b_kept_as_ref ){
++        mark_task_end(1);
+         x264_frame_cond_broadcast( h->fdec, mb_y*16 + (b_end ? 10000 : -(X264_THREAD_HEIGHT << SLICE_MBAFF)) );
++        // soba_wait(0);
++        mark_task_start(1);
++    }
+ 
+     if( b_measure_quality )
+     {
+@@ -2817,6 +2821,8 @@
+     i_mb_x = h->sh.i_first_mb % h->mb.i_mb_width;
+     i_skip = 0;
+ 
++    mark_task_start(1);
++
+     while( 1 )
+     {
+         mb_xy = i_mb_x + i_mb_y * h->mb.i_mb_width;
+@@ -3080,6 +3086,9 @@
+             i_mb_x = 0;
+         }
+     }
++
++    unmark_task(1);
++
+     if( h->sh.i_last_mb < h->sh.i_first_mb )
+         return 0;
+ 
+@@ -3133,7 +3142,6 @@
+             h->fdec->mb_info_free = NULL;
+         }
+     }
+-
+     return 0;
+ }
+ 
+--- parsec-3.0-orig/pkgs/apps/x264/src/input/thread.c	2022-04-14 03:51:21.999978863 +0000
++++ parsec-3.0/pkgs/apps/x264/src/input/thread.c	2022-04-14 03:51:43.552093812 +0000
+@@ -72,7 +72,9 @@
+ 
+ static void read_frame_thread_int( thread_input_arg_t *i )
+ {
++    mark_task_start(2);
+     i->status = i->h->input.read_frame( i->pic, i->h->p_handle, i->i_frame );
++    mark_task_end(2);
+ }
+ 
+ static int read_frame( cli_pic_t *p_pic, hnd_t handle, int i_frame )

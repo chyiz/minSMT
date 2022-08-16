@@ -1,0 +1,10 @@
+diff -ruN parsec-3.0-orig/pkgs/apps/x264/parsec/gcc-pthreads.bldconf parsec-2.0/pkgs/apps/x264/parsec/gcc-pthreads.bldconf
+--- parsec-3.0-orig/pkgs/apps/x264/parsec/gcc-pthreads.bldconf	2021-11-02 20:47:01.946211772 -0400
++++ parsec-3.0/pkgs/apps/x264/parsec/gcc-pthreads.bldconf	2021-11-02 01:05:21.731712653 -0400
+@@ -35,5 +35,5 @@
+ build_inplace="TRUE"
+ 
+ # Arguments to pass to the configure script, if it exists
+-build_conf="--enable-pthread --extra-asflags=\"${ASFLAGS}\" --extra-cflags=\"${CFLAGS}\" --extra-ldflags=\"${LDFLAGS} ${LIBS}\""
++build_conf="--disable-asm --extra-asflags=\"${ASFLAGS}\" --extra-cflags=\"${CFLAGS} -fno-pie -no-pie\" --extra-ldflags=\"${LDFLAGS} -fno-pie -no-pie ${LIBS}\" --host=${GNU_HOST_NAME} --host=${GNU_TARGET_NAME}"
+ 

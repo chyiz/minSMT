@@ -1,0 +1,35 @@
+--- parsec-3.0-orig/ext/splash2x/apps/volrend/src/adaptive.C	2020-07-16 01:46:46.063300557 -0400
++++ parsec-3.0/ext/splash2x/apps/volrend/src/adaptive.C	2020-07-16 01:51:24.806610744 -0400
+@@ -361,12 +361,14 @@
+     xstop = MIN(xstart+num_xqueue,image_len[X]);
+     ystart = (local_node / image_section[X]) * num_yqueue;
+     ystop = MIN(ystart+num_yqueue,image_len[Y]);
++    long localwork = Global->Queue[local_node][0];
+     ALOCK(Global->QLock,local_node);
+-    work = Global->Queue[local_node][0]++;
++    work = Global->Queue[local_node][0]+=lnum_blocks - localwork;;
+     AULOCK(Global->QLock,local_node);
+-    while (work < lnum_blocks) {
+-      xindex = xstart + (work%lnum_xblocks)*block_xlen;
+-      yindex = ystart + (work/lnum_xblocks)*block_ylen;
++    localwork++;
++    while (localwork < lnum_blocks) {
++      xindex = xstart + (localwork%lnum_xblocks)*block_xlen;
++      yindex = ystart + (localwork/lnum_xblocks)*block_ylen;
+       for (outy=yindex; outy<yindex+block_ylen && outy<ystop; outy++) {
+ 	for (outx=xindex; outx<xindex+block_xlen && outx<xstop; outx++) {
+ 
+@@ -378,9 +380,10 @@
+ 	  Trace_Ray(foutx,fouty,pixel_address);
+ 	}
+       }
+-      ALOCK(Global->QLock,local_node);
+-      work = Global->Queue[local_node][0]++;
+-      AULOCK(Global->QLock,local_node);
++      localwork++;
++      //ALOCK(Global->QLock,local_node);
++      //work = Global->Queue[local_node][0]++;
++      //AULOCK(Global->QLock,local_node);
+     }
+     if (my_node == local_node) {
+       ALOCK(Global->QLock,num_nodes);

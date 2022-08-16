@@ -1,0 +1,19 @@
+--- parsec-3.0-orig/pkgs/kernels/streamcluster/src/streamcluster.cpp	2022-02-19 08:06:56.264366662 +0000
++++ parsec-3.0/pkgs/kernels/streamcluster/src/streamcluster.cpp	2022-02-19 08:06:11.849929807 +0000
+@@ -36,6 +36,8 @@
+ #include <hooks.h>
+ #endif
+ 
++#include "tern/user.h"
++
+ using namespace std;
+ 
+ #define MAXNAMESIZE 1024 // max filename length
+@@ -1714,6 +1716,7 @@
+ 
+ #ifdef ENABLE_THREADS
+     pthread_barrier_init(&barrier,NULL,nproc);
++    slock_next_n(nproc);
+ #endif
+     for( int i = 0; i < nproc; i++ ) {
+       arg[i].points = points;

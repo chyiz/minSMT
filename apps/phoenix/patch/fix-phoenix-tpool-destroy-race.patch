@@ -1,0 +1,12 @@
+--- phoenix-2.0.0-modified/src/tpool.c	2020-11-25 18:33:20.747781940 -0500
++++ phoenix-2.0.0/src/tpool.c	2020-11-28 16:35:19.120779055 -0500
+@@ -292,7 +292,8 @@
+     sem_wait(&tpool->sem_all_workers_done);
+ #else
+     pthread_mutex_lock(&(tpool->sem_all_workers_done.mutex));
+-    pthread_cond_wait(&(tpool->sem_all_workers_done.cond_var), &(tpool->sem_all_workers_done.mutex));
++    while (tpool->num_workers != tpool->num_workers_done)
++        pthread_cond_wait(&(tpool->sem_all_workers_done.cond_var), &(tpool->sem_all_workers_done.mutex));
+     pthread_cond_broadcast(&(tpool->sem_all_workers_done.cond_var));
+     pthread_mutex_unlock(&(tpool->sem_all_workers_done.mutex));
+ #endif

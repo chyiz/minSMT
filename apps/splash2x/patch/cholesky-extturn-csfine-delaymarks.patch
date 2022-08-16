@@ -1,0 +1,59 @@
+diff -Naur parsec-3.0/ext/splash2x/kernels/cholesky/src/malloc.C parsec-3.0-sigmetrics/ext/splash2x/kernels/cholesky/src/malloc.C
+--- parsec-3.0/ext/splash2x/kernels/cholesky/src/malloc.C	2021-10-27 03:54:51.174870305 -0400
++++ parsec-3.0-sigmetrics/ext/splash2x/kernels/cholesky/src/malloc.C	2021-09-13 21:40:12.693177267 -0400
+@@ -136,6 +136,8 @@
+ 
+   result = NULL;
+ 
++  no_wait_pcs_enter();
++
+   if (bucket < MAXFAST) {
+     if (mem_pool[home].freeBlock[bucket]) {
+       LOCK(mem_pool[home].memoryLock)
+@@ -226,6 +228,8 @@
+   if (SIZE(result) < size)
+     printf("*** Bad size from malloc %ld, %ld\n", size, SIZE(result));
+ 
++  no_wait_pcs_exit();
++
+   return((char *) result);
+ 
+ }
+@@ -270,9 +274,11 @@
+   long home;
+ 
+   home = HOME(block);
++  no_wait_pcs_enter();
+   LOCK(mem_pool[home].memoryLock)
+   MyFreeNow(block);
+   UNLOCK(mem_pool[home].memoryLock)
++  no_wait_pcs_exit();
+ }
+
+ 
+diff -Naur parsec-3.0/ext/splash2x/kernels/cholesky/src/numLL.C parsec-3.0-sigmetrics/ext/splash2x/kernels/cholesky/src/numLL.C
+--- parsec-3.0/ext/splash2x/kernels/cholesky/src/numLL.C	2013-07-28 10:39:58.000000000 -0400
++++ parsec-3.0-sigmetrics/ext/splash2x/kernels/cholesky/src/numLL.C	2021-10-12 23:01:22.531737224 -0400
+@@ -40,6 +40,8 @@
+   relative = (long *) MyMalloc(LB.n*sizeof(long), MyNum);
+   indices = (long *) MyMalloc(LB.n*sizeof(long), MyNum);
+ 
++  mark_task_start(1);
++
+   root = LB.domains[which_domain];
+ 
+   start = root;
+@@ -162,9 +164,13 @@
+     }
+   }
+ 
++  mark_task_end(1);
++
++  ext_get_turn();
+   if (domain_update) {
+       DistributeUpdateFO(which_domain, MyNum, lc);
+   }
++  ext_put_turn();
+ 
+   MyFree(relative); MyFree(indices);
+ }

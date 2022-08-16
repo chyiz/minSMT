@@ -1,0 +1,143 @@
+--- parsec-2.0-orig/pkgs/apps/vips/src/libsrc/iofuncs/region.c	2008-09-15 11:22:39.000000000 -0400
++++ parsec-2.0/pkgs/apps/vips/src/libsrc/iofuncs/region.c	2021-04-18 01:50:28.856492027 -0400
+@@ -115,10 +115,11 @@
+         /* Have we a sequence running on this region? Start one if not.
+          */
+         if( !reg->seq && im->start ) {
++								// no_wait_pcs_enter();
+                 g_mutex_lock( im->sslock );
+                 reg->seq = im->start( im, im->client1, im->client2 );
+                 g_mutex_unlock( im->sslock );
+- 
++								// no_wait_pcs_exit();
+                 if( !reg->seq ) {
+                         im_error( "im__call_start", 
+ 				_( "start function failed for image %s" ),
+@@ -142,10 +143,11 @@
+         /* Stop any running sequence.
+          */
+         if( reg->seq && im->stop ) {
++								// no_wait_pcs_enter();
+                 g_mutex_lock( im->sslock );
+                 res = im->stop( reg->seq, im->client1, im->client2 );
+                 g_mutex_unlock( im->sslock );
+-
++								// no_wait_pcs_exit();
+ 		if( res )
+                         error_exit( "panic: user stop callback failed "
+ 				"for image %s", im->filename );
+@@ -165,6 +167,7 @@
+ 	/* Lock so that there's a memory barrier with the thread doing the
+ 	 * im__region_no_ownership() before us.
+ 	 */
++	no_wait_pcs_enter();
+ 	g_mutex_lock( reg->im->sslock );
+ 
+ 	assert( reg->thread == NULL );
+@@ -178,6 +181,7 @@
+ 	reg->thread = g_thread_self();
+ 
+ 	g_mutex_unlock( reg->im->sslock );
++	no_wait_pcs_exit();
+ }
+ 
+ void
+@@ -196,6 +200,8 @@
+ void
+ im__region_no_ownership( REGION *reg )
+ {
++	no_wait_pcs_enter();
++	// only one thread call this
+ 	g_mutex_lock( reg->im->sslock );
+ 
+ 	im__region_check_ownership( reg );
+@@ -205,6 +211,7 @@
+ 		im_buffer_undone( reg->buffer );
+ 
+ 	g_mutex_unlock( reg->im->sslock );
++	no_wait_pcs_exit();
+ }
+ 
+ /* Create a region. Set no attachments. Either im_prepare() or im_generate()
+@@ -280,9 +287,11 @@
+ 
+ 	/* Detach from image. 
+ 	 */
++	no_wait_pcs_enter();
+ 	g_mutex_lock( im->sslock );
+ 	im->regions = g_slist_remove( im->regions, reg );
+ 	g_mutex_unlock( im->sslock );
++	no_wait_pcs_exit();
+ 	reg->im = NULL;
+ 
+ 	/* Was this the last region on an image with close_pending? If yes,
+diff -Naur parsec-2.0-orig/pkgs/apps/vips/src/libsrc/iofuncs/threadgroup.c parsec-2.0/pkgs/apps/vips/src/libsrc/iofuncs/threadgroup.c
+--- parsec-2.0-orig/pkgs/apps/vips/src/libsrc/iofuncs/threadgroup.c	2021-01-15 14:47:31.516330186 -0500
++++ parsec-2.0/pkgs/apps/vips/src/libsrc/iofuncs/threadgroup.c	2021-04-18 00:50:07.659148259 -0400
+@@ -342,6 +342,9 @@
+ 	 */
+ 	 	 soba_wait(0);
+ 
++	mark_task_start(2);
++	// no_wait_pcs_enter();
++	
+ 	if( thr->tg->inplace ) {
+ 		if( im_prepare_to( thr->reg, thr->oreg, 
+ 			&thr->pos, thr->x, thr->y ) )
+@@ -353,6 +356,8 @@
+ 		if( im_prepare( thr->reg, &thr->pos ) )
+ 			thr->error = -1;
+ 	}
++	// no_wait_pcs_exit();
++	mark_task_end(2);
+ 
+ 	/* Call our work function.
+ 	 */
+diff -Naur parsec-2.0-orig/pkgs/apps/vips/src/libsrc/iofuncs/window.c parsec-2.0/pkgs/apps/vips/src/libsrc/iofuncs/window.c
+--- parsec-2.0-orig/pkgs/apps/vips/src/libsrc/iofuncs/window.c	2008-09-15 11:22:39.000000000 -0400
++++ parsec-2.0/pkgs/apps/vips/src/libsrc/iofuncs/window.c	2020-12-10 13:25:01.873070978 -0500
+@@ -130,6 +130,7 @@
+ {
+ 	IMAGE *im = window->im;
+ 
++	no_wait_pcs_enter();
+ 	g_mutex_lock( im->sslock );
+ 
+ #ifdef DEBUG
+@@ -152,11 +153,13 @@
+ 
+ 		if( im_window_free( window ) ) {
+ 			g_mutex_unlock( im->sslock );
++			no_wait_pcs_exit();
+ 			return( -1 );
+ 		}
+ 	}
+ 
+ 	g_mutex_unlock( im->sslock );
++	no_wait_pcs_exit();
+ 
+ 	return( 0 );
+ }
+@@ -354,6 +357,7 @@
+ 	}
+ #endif /*DEBUG_ENVIRONMENT*/
+ 
++	no_wait_pcs_enter();
+ 	g_mutex_lock( im->sslock );
+ 
+ 	if( !(window = im_window_find( im, top, height )) ) {
+@@ -366,12 +370,13 @@
+ 
+ 		if( !(window = im_window_new( im, top, height )) ) {
+ 			g_mutex_unlock( im->sslock );
++			no_wait_pcs_exit();
+ 			return( NULL );
+ 		}
+ 	}
+ 
+ 	g_mutex_unlock( im->sslock );
+-
++	no_wait_pcs_exit();
+ 	return( window );
+ }
+ 

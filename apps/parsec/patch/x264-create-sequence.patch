@@ -1,0 +1,156 @@
+diff -Naur parsec-2.0-orig/pkgs/apps/x264/src/common/common.h parsec-2.0/pkgs/apps/x264/src/common/common.h
+--- parsec-2.0-orig/pkgs/apps/x264/src/common/common.h	2008-12-08 22:11:00.000000000 +0000
++++ parsec-2.0/pkgs/apps/x264/src/common/common.h	2020-04-11 01:47:12.000000000 +0000
+@@ -24,6 +24,8 @@
+ #ifndef X264_COMMON_H
+ #define X264_COMMON_H
+ 
++// #define TIMING
++
+ /****************************************************************************
+  * Macros
+  ****************************************************************************/
+diff -Naur parsec-2.0-orig/pkgs/apps/x264/src/common/frame.c parsec-2.0/pkgs/apps/x264/src/common/frame.c
+--- parsec-2.0-orig/pkgs/apps/x264/src/common/frame.c	2008-12-08 22:11:00.000000000 +0000
++++ parsec-2.0/pkgs/apps/x264/src/common/frame.c	2020-04-11 01:49:10.000000000 +0000
+@@ -22,6 +22,7 @@
+  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02111, USA.
+  *****************************************************************************/
+ 
++#include<sys/time.h>
+ #include "common.h"
+ 
+ #define ALIGN(x,a) (((x)+((a)-1))&~((a)-1))
+@@ -873,21 +874,41 @@
+ #endif // ARCH_PPC
+ }
+ 
++int timediff(struct timeval *end, struct timeval *start){
++    return ((end->tv_sec - start->tv_sec) * 1000000) + (end->tv_usec - start->tv_usec);
++}
++
+ 
+ /* threading */
+ void x264_frame_cond_broadcast( x264_frame_t *frame, int i_lines_completed )
+ {
+     x264_pthread_mutex_lock( &frame->mutex );
+     frame->i_lines_completed = i_lines_completed;
++#ifdef TIMING
++    printf("Thread %d Wake up frame %d. frame lines completed: %d, i lines completed: %d\n", pthread_self(), frame->i_frame, frame->i_lines_completed, i_lines_completed);
++#endif
+     x264_pthread_cond_broadcast( &frame->cv );
+     x264_pthread_mutex_unlock( &frame->mutex );
+ }
+ 
+ void x264_frame_cond_wait( x264_frame_t *frame, int i_lines_completed )
+ {
++    struct timeval begin, end;
+     x264_pthread_mutex_lock( &frame->mutex );
+-    while( frame->i_lines_completed < i_lines_completed )
++#ifdef TIMING
++    gettimeofday(&begin, NULL);
++#endif
++    while( frame->i_lines_completed < i_lines_completed ){
++#ifdef TIMING
++        printf("Thread %d Waiting on frame %d. frame lines completed: %d, i lines completed: %d\n", pthread_self(), frame->i_frame, frame->i_lines_completed, i_lines_completed);
++#endif
+         x264_pthread_cond_wait( &frame->cv, &frame->mutex );
++    }
++#ifdef TIMING
++    gettimeofday(&end, NULL);
++    printf("Thread %d Obtained frame %d. frame lines completed: %d, i lines completed: %d\n", pthread_self(), frame->i_frame, frame->i_lines_completed, i_lines_completed);
++    printf("Thread %d waited %d.\n", pthread_self(), timediff(&end, &begin));
++#endif
+     x264_pthread_mutex_unlock( &frame->mutex );
+ }
+ 
+diff -Naur parsec-2.0-orig/pkgs/apps/x264/src/encoder/encoder.c parsec-2.0/pkgs/apps/x264/src/encoder/encoder.c
+--- parsec-2.0-orig/pkgs/apps/x264/src/encoder/encoder.c	2008-12-08 22:11:00.000000000 +0000
++++ parsec-2.0/pkgs/apps/x264/src/encoder/encoder.c	2020-04-11 02:01:20.000000000 +0000
+@@ -23,6 +23,7 @@
+  *****************************************************************************/
+ 
+ #include <math.h>
++#include "tern/user.h"
+ 
+ #include "common/common.h"
+ #include "common/cpu.h"
+@@ -46,6 +47,9 @@
+                                     x264_nal_t **pp_nal, int *pi_nal,
+                                     x264_picture_t *pic_out );
+ 
++static void x264_pthread_create_delayed(pthread_t *thread_handle, const pthread_attr_t *attr,
++                          void *(*start_routine) (void *), x264_t *h, x264_t *thread_current);
++
+ /****************************************************************************
+  *
+  ******************************* x264 libs **********************************
+@@ -1357,12 +1361,14 @@
+                              x264_picture_t *pic_in,
+                              x264_picture_t *pic_out )
+ {
+-    x264_t *thread_current, *thread_prev, *thread_oldest;
++    x264_t *thread_current, *thread_prev, *thread_oldest, *in_handle;
+     int     i_nal_type;
+     int     i_nal_ref_idc;
+ 
+     int   i_global_qp;
+ 
++    in_handle = h;
++
+     if( h->param.i_threads > 1)
+     {
+         int i = ++h->i_thread_phase;
+@@ -1584,8 +1590,11 @@
+     /* Write frame */
+     if( h->param.i_threads > 1 )
+     {
+-        x264_pthread_create( &h->thread_handle, NULL, (void*)x264_slices_write, h );
+-        h->b_thread_active = 1;
++        // x264_pthread_create( &h->thread_handle, NULL, (void*)x264_slices_write, h );
++        // printf("thread %d created, thread phase %d, frame %d.\n", h->thread_handle, h->i_thread_phase, h->fenc->i_frame);
++        // h->b_thread_active = 1;
++        x264_pthread_create_delayed( &h->thread_handle, NULL, (void*)x264_slices_write, in_handle, h);
++        
+     }
+     else
+         x264_slices_write( h );
+@@ -1695,6 +1704,28 @@
+     return 0;
+ }
+ 
++static void x264_pthread_create_delayed(pthread_t *thread_handle, const pthread_attr_t *attr,
++                          void *(*start_routine) (void *), x264_t *h, x264_t *thread_current){
++    int i, num_threads = h->param.i_threads;
++    if ((h->i_thread_phase % num_threads) == 0){
++        slock_next_n(num_threads);
++        for (i=1; i<num_threads; i++){
++            x264_pthread_create(&h->thread[i]->thread_handle, NULL, start_routine, h->thread[i]);
++            h->thread[i]->b_thread_active = 1;
++#ifdef TIMING
++             printf("thread %d created, thread phase %d, frame %d.\n", h->thread[i]->thread_handle, h->thread[i]->i_thread_phase, h->thread[i]->fenc->i_frame);
++#endif
++        }
++        x264_pthread_create(&h->thread[0]->thread_handle, NULL, start_routine, h->thread[0]);
++        h->thread[0]->b_thread_active = 1;
++#ifdef TIMING
++        printf("thread %d created, thread phase %d. frame %d.\n", h->thread[0]->thread_handle, h->thread[0]->i_thread_phase, h->thread[0]->fenc->i_frame);
++#endif
++    }
++
++    // Otherwise do nothing.
++}
++
+ static void x264_encoder_frame_end( x264_t *h, x264_t *thread_current,
+                                     x264_nal_t **pp_nal, int *pi_nal,
+                                     x264_picture_t *pic_out )
+@@ -1704,6 +1735,9 @@
+ 
+     if( h->b_thread_active )
+     {
++#ifdef TIMING
++        printf("Joining thread %d, thread phase %d.\n", h->thread_handle, h->i_thread_phase);
++#endif
+         x264_pthread_join( h->thread_handle, NULL );
+         h->b_thread_active = 0;
+     }

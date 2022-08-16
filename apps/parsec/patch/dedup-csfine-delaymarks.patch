@@ -1,0 +1,188 @@
+--- parsec-3.0-before-patch/pkgs/kernels/dedup/src/encoder.c	2022-02-23 06:58:30.183308452 +0000
++++ parsec-3.0/pkgs/kernels/dedup/src/encoder.c	2022-02-23 06:58:58.449331746 +0000
+@@ -417,11 +417,24 @@
+   r += ringbuffer_init(&send_buf, ITEM_PER_INSERT);
+   assert(r==0);
+ 
++  int will_dequeue = 1;
++  ext_get_turn();
++
+   while(1) {
+     //get items from the queue
+     if (ringbuffer_isEmpty(&recv_buf)) {
++
++      if (!will_dequeue) mark_task_end(3);
++
+       r = queue_dequeue(&compress_que[qid], &recv_buf, ITEM_PER_FETCH);
++
++      if (will_dequeue){
++        will_dequeue = 0;
++        ext_put_turn();
++      }
+       if (r < 0) break;
++
++      mark_task_start(3);
+     }
+ 
+     //fetch one item
+@@ -439,7 +452,16 @@
+ 
+     //put the item in the next queue for the write thread
+     if (ringbuffer_isFull(&send_buf)) {
++
++      mark_task_end(3);
++      if (ringbuffer_isEmpty(&recv_buf)){
++        will_dequeue = 1;
++        ext_get_turn();
++      }
+       r = queue_enqueue(&reorder_que[qid], &send_buf, ITEM_PER_INSERT);
++
++      if (!will_dequeue) mark_task_start(3);
++
+       assert(r>=1);
+     }
+   }
+@@ -484,6 +506,8 @@
+ 
+   SHA1_Digest(chunk->uncompressed_data.ptr, chunk->uncompressed_data.n, (unsigned char *)(chunk->sha1));
+ 
++  no_wait_pcs_enter();
++
+   //Query database to determine whether we've seen the data chunk before
+ #ifdef ENABLE_PTHREADS
+   pthread_mutex_t *ht_lock = hashtable_getlock(cache, (void *)(chunk->sha1));
+@@ -511,6 +535,8 @@
+   pthread_mutex_unlock(ht_lock);
+ #endif
+ 
++  no_wait_pcs_exit();
++
+   return isDuplicate;
+ }
+ 
+@@ -545,11 +571,25 @@
+   r += ringbuffer_init(&send_buf_compress, ITEM_PER_INSERT);
+   assert(r==0);
+ 
++  int will_dequeue = 1;
++  ext_get_turn();
++
+   while (1) {
+     //if no items available, fetch a group of items from the queue
+     if (ringbuffer_isEmpty(&recv_buf)) {
++      
++      if (!will_dequeue) mark_task_end(1);
++
+       r = queue_dequeue(&deduplicate_que[qid], &recv_buf, CHUNK_ANCHOR_PER_FETCH);
++
++      if (will_dequeue){
++        ext_put_turn();
++        will_dequeue = 0;
++      }
++
+       if (r < 0) break;
++
++      mark_task_start(1);
+     }
+ 
+     //get one chunk
+@@ -572,14 +612,38 @@
+       r = ringbuffer_insert(&send_buf_compress, chunk);
+       assert(r==0);
+       if (ringbuffer_isFull(&send_buf_compress)) {
++
++        mark_task_end(1);
++        if (ringbuffer_isEmpty(&recv_buf)){
++          will_dequeue = 1;
++          ext_get_turn();
++        }
++
+         r = queue_enqueue(&compress_que[qid], &send_buf_compress, ITEM_PER_INSERT);
++
++        if (!will_dequeue){
++          mark_task_start(1);
++        }
++
+         assert(r>=1);
+       }
+     } else {
+       r = ringbuffer_insert(&send_buf_reorder, chunk);
+       assert(r==0);
+       if (ringbuffer_isFull(&send_buf_reorder)) {
++
++        mark_task_end(1);
++        if (ringbuffer_isEmpty(&recv_buf)){
++          will_dequeue = 1;
++          ext_get_turn();
++        }
++
+         r = queue_enqueue(&reorder_que[qid], &send_buf_reorder, ITEM_PER_INSERT);
++
++        if (!will_dequeue){
++          mark_task_start(1);
++        }
++
+         assert(r>=1);
+       }
+     }
+@@ -649,13 +713,27 @@
+   init_stats(thread_stats);
+ #endif //ENABLE_STATISTICS
+ 
++  int will_dequeue = 1;
++  ext_get_turn();
++
+   while (TRUE) {
+     //if no item for process, get a group of items from the pipeline
+     if (ringbuffer_isEmpty(&recv_buf)) {
++
++      if (!will_dequeue) mark_task_end(2);
++
+       r = queue_dequeue(&refine_que[qid], &recv_buf, MAX_PER_FETCH);
++
++      if (will_dequeue){
++        ext_put_turn();
++        will_dequeue = 0;
++      }
++
+       if (r < 0) {
+         break;
+       }
++
++      mark_task_start(2);
+     }
+ 
+     //get one item
+@@ -695,7 +773,13 @@
+         r = ringbuffer_insert(&send_buf, chunk);
+         assert(r==0);
+         if (ringbuffer_isFull(&send_buf)) {
++          
++          mark_task_end(2);
++
+           r = queue_enqueue(&deduplicate_que[qid], &send_buf, CHUNK_ANCHOR_PER_INSERT);
++
++          mark_task_start(2);
++
+           assert(r>=1);
+         }
+         //prepare for next iteration
+@@ -717,7 +801,18 @@
+         r = ringbuffer_insert(&send_buf, chunk);
+         assert(r==0);
+         if (ringbuffer_isFull(&send_buf)) {
++
++          mark_task_end(2);
++          if (ringbuffer_isEmpty(&recv_buf)){
++            will_dequeue = 1;
++            ext_get_turn();
++          }
++
+           r = queue_enqueue(&deduplicate_que[qid], &send_buf, CHUNK_ANCHOR_PER_INSERT);
++
++          if (!will_dequeue){
++            mark_task_start(2);
++          }
+           assert(r>=1);
+         }
+         //prepare for next iteration

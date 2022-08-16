@@ -1,0 +1,19 @@
+diff -Naur parsec-3.0/ext/splash2x/apps/water_nsquared/src/interf.C parsec-3.0-sigmetrics/ext/splash2x/apps/water_nsquared/src/interf.C
+--- parsec-3.0/ext/splash2x/apps/water_nsquared/src/interf.C	2013-07-28 10:39:57.000000000 -0400
++++ parsec-3.0-sigmetrics/ext/splash2x/apps/water_nsquared/src/interf.C	2021-08-23 21:50:16.015532879 -0400
+@@ -150,6 +150,7 @@
+     /* contains the number of the last molecule (no modulo) */
+     /* that this process touched                            */
+ 
++    no_wait_pcs_enter();
+     if (comp_last > NMOL1) {
+         for (mol = StartMol[ProcID]; mol < NMOL; mol++) {
+             ALOCK(gl->MolLock, mol % MAXLCKS);
+@@ -185,6 +186,7 @@
+             AULOCK(gl->MolLock, mol % MAXLCKS);
+         }
+     }
++    no_wait_pcs_exit();
+ 
+     /* wait till all forces are updated */
+ 

@@ -1,0 +1,183 @@
+#!/bin/bash
+
+set -e
+
+ROOT=`pwd`
+
+if [ ! -d $XTERN_ROOT ]; then
+	echo "XTERN_ROOT is not defined"
+	exit 1
+fi
+
+
+PARSECPLAT='amd64-linux'
+
+PARSEC_ROOT=$XTERN_ROOT/apps/parsec
+
+pushd $PARSEC_ROOT
+
+# if [ -d $XTERN_ROOT/apps/parsec3/parsec-3.0 ]; then rm -Rf $XTERN_ROOT/apps/parsec3/parsec-3.0; fi
+
+
+echo "Checking parsec sim file..."
+if [ ! -f parsec-3.0-input-sim.tar.gz ]; then
+    wget http://parsec.cs.princeton.edu/download/3.0/parsec-3.0-input-sim.tar.gz
+fi
+if [ ! -f parsec-3.0/config/simdev.runconf ]; then
+    tar zxvf parsec-3.0-input-sim.tar.gz
+fi
+
+echo "Checking parsec native file..."
+if [ ! -f parsec-3.0-input-native.tar.gz ]; then
+    wget http://parsec.cs.princeton.edu/download/3.0/parsec-3.0-input-native.tar.gz
+fi
+if [ ! -f parsec-3.0/config/native.runconf ]; then
+    tar zxvf parsec-3.0-input-native.tar.gz
+fi
+
+echo "Checking parsec core file..."
+if [ ! -f parsec-3.0-core.tar.gz ]; then
+    wget http://parsec.cs.princeton.edu/download/3.0/parsec-3.0-core.tar.gz
+fi
+tar zxf parsec-3.0-core.tar.gz > /dev/null 2>&1
+
+echo "Relace x264 with newer version..."
+if [ ! -f x264-66a5bc1b.tar.gz ]; then
+    wget https://code.videolan.org/videolan/x264/-/archive/66a5bc1bd1563d8227d5d18440b525a09bcf17ca/x264-66a5bc1bd1563d8227d5d18440b525a09bcf17ca.tar.gz -O x264-66a5bc1b.tar.gz
+fi
+tar zxvf x264-66a5bc1b.tar.gz --strip-components=1 -C parsec-3.0/pkgs/apps/x264/src/
+
+echo "Patching Parsec 3.0"
+
+pushd parsec-3.0
+# patch -p1 < $PARSEC_ROOT/patch/libxml2-compilation.patch
+# patch -p1 < $PARSEC_ROOT/patch/ssl-compilation.patch
+# patch -p1 < $PARSEC_ROOT/patch/config-compilation.patch
+# patch -p1 < $PARSEC_ROOT/patch/imagick-compilation.patch
+
+
+patch -p1 < $PARSEC_ROOT/patch/bodytrack-compilation.patch
+patch -p1 < $PARSEC_ROOT/patch/canneal-compilation.patch
+# patch -p1 < $PARSEC_ROOT/patch/dedup-compilation.patch
+patch -p1 < $PARSEC_ROOT/patch/swaptions-compilation.patch
+patch -p1 < $PARSEC_ROOT/patch/facesim-compilation.patch
+patch -p1 < $PARSEC_ROOT/patch/ferret-compilation.patch
+patch -p1 < $PARSEC_ROOT/patch/vips-compilation.patch
+patch -p1 < $PARSEC_ROOT/patch/x264-compilation.patch
+
+patch -p1 < $PARSEC_ROOT/patch/annot-streamcluster.patch
+
+patch -p1 < $PARSEC_ROOT/patch/add-blackscholes-nextn.patch
+patch -p1 < $PARSEC_ROOT/patch/add-canneal-nextn.patch
+patch -p1 < $PARSEC_ROOT/patch/add-dedup-nextn.patch
+patch -p1 < $PARSEC_ROOT/patch/add-raytrace-nextn.patch
+patch -p1 < $PARSEC_ROOT/patch/add-streamcluster-nextn.patch
+patch -p1 < $PARSEC_ROOT/patch/annot-bodytrack-pthreads.patch
+patch -p1 < $PARSEC_ROOT/patch/add-bodytrack-nextn.patch
+#patch -p1 < $PARSEC_ROOT/patch/annot-fluidanimate-non-det.patch
+patch -p1 < $PARSEC_ROOT/patch/annot-fluidanimate-non-det-nextn.patch
+# patch -p1 < $PARSEC_ROOT/patch/fix-ferret-crash.patch
+#patch -p1 < $PARSEC_ROOT/patch/annot-ferret.patch
+patch -p1 < $PARSEC_ROOT/patch/annot-ferret-nextn.patch
+# patch -p1 < $PARSEC_ROOT/patch/annot-swaptions.patch
+patch -p1 < $PARSEC_ROOT/patch/annot-swaptions-soba-with-nextn.patch
+#patch -p1 < $PARSEC_ROOT/patch/annot-facesim.patch
+patch -p1 < $PARSEC_ROOT/patch/annot-facesim-nextn.patch
+#patch -p1 < $PARSEC_ROOT/patch/annot-vips.patch
+# patch -p1 < $PARSEC_ROOT/patch/annot-vips-next-n.patch
+# patch -p1 < $PARSEC_ROOT/patch/simd-gcc.patch
+# patch -p1 < $PARSEC_ROOT/patch/bodytrack.diff
+# patch -p1 < $PARSEC_ROOT/patch/vips.diff - commented by HAK
+# patch -p1 < $PARSEC_ROOT/patch/fluidanimate-serial.patch
+patch -p1 < $PARSEC_ROOT/patch/bodytrack_avoid_deadlock.patch
+# patch -p1 < $PARSEC_ROOT/patch/fix-imagick-jpg.patch - commented by HAK
+# patch -p1 < $PARSEC_ROOT/patch/fix-raytrace-compilation.patch - commented by HAK
+patch -p1 < $PARSEC_ROOT/patch/fix-rtview-deadlock.patch
+patch -p1 < $PARSEC_ROOT/patch/annot-x264.patch
+patch -p1 < $PARSEC_ROOT/patch/annot-freqmine-openmp.patch
+
+# patch -p1 < $PARSEC_ROOT/patch/x264-create-sequence.patch
+patch -p1 < $PARSEC_ROOT/patch/fluidanimate-csfine.patch
+
+patch -p1 < $PARSEC_ROOT/patch/ferret-delaymarks.patch
+# patch -p1 < $PARSEC_ROOT/patch/vips-csfine-delaymarks.patch
+patch -p1 < $PARSEC_ROOT/patch/freqmine-openmp-extturn-delaymarks.patch
+patch -p1 < $PARSEC_ROOT/patch/dedup-csfine-delaymarks.patch
+patch -p1 < $PARSEC_ROOT/patch/x264-delaymarks.patch
+patch -p1 < $PARSEC_ROOT/patch/streamcluster-delaymarks.patch
+
+
+
+popd
+
+# streamcluster deadlock
+# sed -i "784 i\      pthread_barrier_wait(barrier);" $PARSEC_ROOT/parsec-3.0/pkgs/kernels/streamcluster/src/streamcluster.cpp
+# for compiling on ubuntu machine
+#sed -i 's/${LDFLAGS} ${LIBS}/${LDFLAGS} -lz ${LIBS}/g' $PARSEC_ROOT/parsec-2.0/pkgs/apps/x264/parsec/gcc-pthreads.bldconf
+# log file might miss if the execution time is less than 1 second
+sed -i "51 s/%F_%T\"/%F_%T_%N\"/" $PARSEC_ROOT/parsec-3.0/config/linux.sysconf
+# posix time format
+sed -i "268 s/\"time\"/\"time -p\"/g" $PARSEC_ROOT/parsec-3.0/bin/parsecmgmt
+
+# patch smime.pod error
+for i in 0 1 2 3 4 5 6 7
+do
+    echo "Replacing '=item $i' to '=item C<$i>'"
+    grep -rl "=item $i" parsec-3.0/ --include \*.pod | xargs sed -i "s/=item $i/=item C<$i>/g"
+done
+
+echo "Build Parsec"
+# patch building configs
+sed -i  's/-O3 -g -funroll-loops/-O3 -g -funroll-loops -I${XTERN_ROOT}\/include /g' parsec-3.0/config/gcc.bldconf
+#sed -i '42 s|'/usr/local/gcc-4.2.1'|'$PARSEC_ROOT/gcc-4.2'|' parsec-2.0/config/gcc.bldconf
+sed -i '43 s|'/usr'|'$XTERN_ROOT/apps/openmp/install'|' parsec-3.0/config/gcc.bldconf
+sed -i '78 s|\"$| -Wl,--rpath,${CC_HOME}/lib64 -Wl,--rpath,${CC_HOME}/lib -L${XTERN_ROOT}/dync_hook -Wl,--rpath,${XTERN_ROOT}/dync_hook\"''|' parsec-3.0/config/gcc.bldconf
+sed -i '79 s|\"$| -lxtern-annot\"''|' parsec-3.0/config/gcc.bldconf
+sed -i '74 s/\"$/ -march=native\"/g' parsec-3.0/config/gcc.bldconf
+sed -i '75 s/\"$/ -march=native\"/g' parsec-3.0/config/gcc.bldconf
+cd parsec-3.0/bin
+./parsecmgmt -a build -p blackscholes
+./parsecmgmt -a build -p bodytrack
+./parsecmgmt -a build -p facesim
+./parsecmgmt -a build -p swaptions
+./parsecmgmt -a build -p fluidanimate
+./parsecmgmt -a build -p vips
+./parsecmgmt -a build -p x264
+./parsecmgmt -a build -p canneal
+./parsecmgmt -a build -p dedup
+./parsecmgmt -a build -p streamcluster
+./parsecmgmt -a build -p raytrace
+./parsecmgmt -a build -p ferret
+#PARSECPLAT_ORG=$PARSECPLAT
+#PARSECPLAT=$PARSECPLAT-openmp
+./parsecmgmt -a build -c gcc-openmp -p blackscholes
+./parsecmgmt -a build -c gcc-openmp -p freqmine
+./parsecmgmt -a build -c gcc-openmp -p bodytrack
+#PARSECPLAT=$PARSECPLAT_ORG
+
+./parsecmgmt -a status
+
+# copy files
+cd $XTERN_ROOT/apps/parsec
+rm -rf blackscholes bodytrack facesim fluidanimate swaptions vips x264 ferret freqmine rtview canneal dedup streamcluster
+rm -rf freqmine-openmp blackscholes-openmp bodytrack-openmp
+workloads=( blackscholes bodytrack facesim fluidanimate swaptions vips x264 ferret )
+for i in "${workloads[@]}"
+do
+    ln -s parsec-3.0/pkgs/apps/$i/inst/$PARSECPLAT.gcc/bin/$i
+done
+workloads=( freqmine blackscholes bodytrack )
+for i in "${workloads[@]}"
+do
+    ln -s parsec-3.0/pkgs/apps/$i/inst/$PARSECPLAT.gcc-openmp/bin/$i $i-openmp
+done
+ln -s parsec-3.0/pkgs/apps/raytrace/inst/$PARSECPLAT.gcc/bin/rtview
+workloads=( canneal dedup streamcluster )
+for i in "${workloads[@]}"
+do
+    ln -s parsec-3.0/pkgs/kernels/$i/inst/$PARSECPLAT.gcc/bin/$i
+done
+
+popd
+
+echo "DONE!"

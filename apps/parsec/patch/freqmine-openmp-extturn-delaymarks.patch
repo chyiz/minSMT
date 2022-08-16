@@ -1,0 +1,82 @@
+--- parsec-3.0-orig/pkgs/apps/freqmine/src/fp_tree.cpp	2022-02-23 06:10:57.386194463 +0000
++++ parsec-3.0/pkgs/apps/freqmine/src/fp_tree.cpp	2022-02-23 06:14:14.597675984 +0000
+@@ -42,6 +42,8 @@
+ #include "common.h"
+ #include "wtime.h"
+ 
++#include "tern/user.h"
++
+ #ifdef _OPENMP
+ #include <omp.h>
+ #else
+@@ -545,6 +547,9 @@
+ 		int item;
+ 		int has;
+ 		int *local_hot_node_count = hot_node_count[thread];
++
++		mark_task_start(1);
++
+ 		newnode = thread_mapfile[thread]->first;
+ 		size = newnode->size;
+ 		newcontent = (unsigned short *) newnode->TransactionContent;
+@@ -622,6 +627,8 @@
+ 			newnode->top = currentpos;
+ 			currentnode->finalize();
+ 			thread_pos[thread] = currentpos;
++
++			mark_task_end(1);
+ 	}
+ 	
+ 	for (i = 0; i < workingthread; i ++) {
+@@ -1062,6 +1069,9 @@
+ 		unsigned short* compact;
+ 		Fnode ***local_rightsib_backpatch_stack = rightsib_backpatch_stack[thread];
+ 		int local_rightsib_backpatch_count = rightsib_backpatch_count[thread][0];
++
++		mark_task_start(2);
++
+ 		for (int t = mergedworkbase[j]; t < mergedworkend[j]; t ++) {
+ 			ntype = ntypeidarray[t];
+ 			localthreadworkload[localthreadworkloadnum] = ntype;
+@@ -1153,6 +1163,8 @@
+ 		}
+ 		rightsib_backpatch_count[thread][0] = local_rightsib_backpatch_count;
+ 		threadworkloadnum[thread] = localthreadworkloadnum;
++
++		mark_task_end(2);
+ 	}
+ 	delete database_buf;
+ 	
+@@ -1350,6 +1362,10 @@
+ 			char* MB2;		
+ 			int thread = omp_get_thread_num();
+ 			//release_node_array_before_mining(sequence, thread, workingthread); remove due to data race
++
++			ext_put_turn();
++			mark_task_start(3);
++
+ 			memory *local_fp_tree_buf = fp_tree_buf[thread];
+ 			memory *local_fp_buf = fp_buf[thread];
+ 			stack *local_list = list[thread];
+@@ -1382,6 +1398,10 @@
+ 						fout->printSet(local_list->top, local_list->FS, local_global_count_array[0]);
+ 				}
+ 				local_list->top=listlen-1;
++
++				mark_task_end(3);
++				ext_get_turn();
++
+ 				release_node_array_after_mining(sequence, thread, workingthread);
+ 				continue;
+ 			}
+@@ -1423,6 +1443,10 @@
+ 				fptree->FP_growth(thread, fout);
+ 				local_list->top = listlen-1;
+ 			}
++
++			mark_task_end(3);
++			ext_get_turn();
++
+ 			release_node_array_after_mining(sequence, thread, workingthread);
+ 		}
+ 	}

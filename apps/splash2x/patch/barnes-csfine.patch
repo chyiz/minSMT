@@ -1,0 +1,42 @@
+diff -Naur parsec-3.0-orig/ext/splash2x/apps/barnes/src/load.C parsec-3.0/ext/splash2x/apps/barnes/src/load.C
+--- parsec-3.0-orig/ext/splash2x/apps/barnes/src/load.C	2021-01-15 15:03:47.886564425 -0500
++++ parsec-3.0/ext/splash2x/apps/barnes/src/load.C	2021-01-08 00:56:11.335443500 -0500
+@@ -18,6 +18,7 @@
+ #define global extern
+ 
+ #include "stdinc.h"
++#include "tern/user.h"
+ 
+ /*
+  * MAKETREE: initialize tree structure for hack force calculation.
+@@ -42,10 +43,12 @@
+ 				 ProcessId);
+       }
+       else {
++   no_wait_pcs_enter();
+ 	 LOCK(Global->io_lock);
+ 	 fprintf(stderr, "Process %ld found body %ld to have zero mass\n",
+ 		 ProcessId, (long) p);
+ 	 UNLOCK(Global->io_lock);
++    no_wait_pcs_exit();
+       }
+    }
+    BARRIER(Global->Barrier,NPROC);
+@@ -212,6 +215,8 @@
+       if (l == 0) {
+ 	 error("not enough levels in tree\n");
+       }
++      no_wait_pcs_enter();
++      // ext_get_turn();
+       if (*qptr == NULL) {
+ 	 /* lock the parent cell */
+ 	 ALOCK(CellLock->CL, ((cellptr) mynode)->seqnum % MAXLOCK);
+@@ -249,6 +254,8 @@
+ 	 AULOCK(CellLock->CL, ((cellptr) mynode)->seqnum % MAXLOCK);
+ 	 /* unlock the node           */
+       }
++      // ext_put_turn();
++      no_wait_pcs_exit();
+       if (flag) {
+ 	 mynode = *qptr;
+          kidIndex = subindex(xp, l);

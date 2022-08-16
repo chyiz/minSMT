@@ -1,0 +1,48 @@
+diff -ruN parsec-2.0-orig/config/gcc.bldconf parsec-2.0/config/gcc.bldconf
+--- parsec-2.0-orig/config/gcc.bldconf	2009-01-29 17:16:55.000000000 -0500
++++ parsec-2.0/config/gcc.bldconf	2021-11-02 01:04:16.348929258 -0400
+@@ -27,9 +27,9 @@
+   export SFW_HOME="/usr/sfw"
+ 
+   # CC_HOME is installation root of the C compiler
+-  export CC_HOME="/usr/local/gcc-4.2.1"
++  export CC_HOME="/usr/local"
+   # BINUTIL_HOME is installation root of the GNU binutils
+-  export BINUTIL_HOME="/usr/local"
++  export BINUTIL_HOME="/usr"
+   # GNUTOOL_HOME is installation root of the GNU tools
+   export GNUTOOL_HOME="${SFW_HOME}"
+   # BINARY_PREFIX is the string which is used as prefix for the GNU binaries
+@@ -39,9 +39,9 @@
+   # Linux + default case
+ 
+   # CC_HOME is installation root of the C compiler
+-  export CC_HOME="/usr/local/gcc-4.2.1"
++  export CC_HOME="/usr"
+   # BINUTIL_HOME is installation root of the GNU binutils
+-  export BINUTIL_HOME="/usr/local"
++  export BINUTIL_HOME="/usr"
+   # GNUTOOL_HOME is installation root of the GNU tools
+   export GNUTOOL_HOME="/usr"
+   # BINARY_PREFIX is the string which is used as prefix for the GNU binaries
+diff -ruN parsec-2.0-orig/config/icc.bldconf parsec-2.0/config/icc.bldconf
+--- parsec-2.0-orig/config/icc.bldconf	2009-02-10 02:26:55.000000000 -0500
++++ parsec-2.0/config/icc.bldconf	2021-11-02 01:04:16.348929258 -0400
+@@ -29,7 +29,7 @@
+   # CC_HOME is the installation root of the C compiler
+   export CC_HOME="/opt/intel/cc/latest"
+   # GCC_HOME is installation root of the GNU C compiler
+-  export GCC_HOME="/usr/local/gcc-4.2.1"
++  export GCC_HOME="/usr"
+   # BINUTIL_HOME is installation root of the GNU binutils
+   export BINUTIL_HOME="/usr/local"
+   # GNUTOOL_HOME is installation root of the GNU tools
+@@ -43,7 +43,7 @@
+   # CC_HOME is installation root of the C compiler
+   export CC_HOME="/opt/intel/cc/latest"
+   # GCC_HOME is installation root of the GNU C compiler
+-  export GCC_HOME="/usr/local/gcc-4.2.1"
++  export GCC_HOME="/usr"
+   # BINUTIL_HOME is installation root of the GNU binutils
+   export BINUTIL_HOME="/usr/local"
+   # GNUTOOL_HOME is installation root of the GNU tools

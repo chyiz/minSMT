@@ -1,0 +1,20 @@
+diff -ruN parsec-2.0-orig/pkgs/libs/libxml2/src/nanohttp.c parsec-2.0/pkgs/libs/libxml2/src/nanohttp.c
+--- parsec-2.0-orig/pkgs/libs/libxml2/src/nanohttp.c	2021-11-02 20:05:06.428180227 -0400
++++ parsec-2.0/pkgs/libs/libxml2/src/nanohttp.c	2021-11-02 01:05:37.416380353 -0400
+@@ -26,6 +26,7 @@
+ #endif
+ #ifdef HAVE_SYS_TYPES_H
+ #include <sys/types.h>
++#include <sys/stat.h>
+ #endif
+ #ifdef HAVE_SYS_SOCKET_H
+ #include <sys/socket.h>
+@@ -1582,7 +1583,7 @@
+     if (!strcmp(filename, "-")) 
+         fd = 0;
+     else {
+-        fd = open(filename, O_CREAT | O_WRONLY);
++        fd = open(filename, O_CREAT | O_WRONLY , 0755);
+ 	if (fd < 0) {
+ 	    xmlNanoHTTPClose(ctxt);
+ 	    return(-1);

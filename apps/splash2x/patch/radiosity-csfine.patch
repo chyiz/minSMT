@@ -1,0 +1,332 @@
+diff -Naur parsec-3.0-orig/ext/splash2x/apps/radiosity/src/display.C parsec-3.0/ext/splash2x/apps/radiosity/src/display.C
+--- parsec-3.0-orig/ext/splash2x/apps/radiosity/src/display.C	2013-07-28 10:39:56.000000000 -0400
++++ parsec-3.0/ext/splash2x/apps/radiosity/src/display.C	2020-12-08 03:55:08.230191498 -0500
+@@ -15,6 +15,7 @@
+ /*************************************************************************/
+ 
+ #include <stdio.h>
++#include "tern/user.h"
+ 
+ EXTERN_ENV;
+ 
+@@ -61,6 +62,8 @@
+     else
+         {
+             /* Normalize it */
++            no_wait_pcs_enter();
++            ext_get_turn();
+             LOCK(elem->ev1->ev_lock->lock);
+             if( elem->ev1->weight != 1.0 )
+                 {
+@@ -93,6 +96,8 @@
+                     elem->ev3->weight = 1.0 ;
+                 }
+             UNLOCK(elem->ev3->ev_lock->lock);
++            ext_put_turn();
++            no_wait_pcs_exit();
+         }
+ }
+ 
+@@ -109,12 +114,14 @@
+     weight = (float)1.0 / distance( &ev->p, p_c ) ;
+     weight = 1.0 ;
+     weight = elem->area ;
++    no_wait_pcs_enter();
+     LOCK(ev->ev_lock->lock);
+     ev->col.r += (elem->rad.r * weight) ;
+     ev->col.g += (elem->rad.g * weight) ;
+     ev->col.b += (elem->rad.b * weight) ;
+     ev->weight += weight ;
+     UNLOCK(ev->ev_lock->lock);
++    no_wait_pcs_exit();
+ }
+ 
+ 
+diff -Naur parsec-3.0-orig/ext/splash2x/apps/radiosity/src/elemman.C parsec-3.0/ext/splash2x/apps/radiosity/src/elemman.C
+--- parsec-3.0-orig/ext/splash2x/apps/radiosity/src/elemman.C	2013-07-28 10:39:56.000000000 -0400
++++ parsec-3.0/ext/splash2x/apps/radiosity/src/elemman.C	2020-12-09 17:03:04.079803671 -0500
+@@ -25,6 +25,8 @@
+ 
+ #include <stdio.h>
+ 
++#include "tern/user.h"
++
+ EXTERN_ENV;
+ 
+ include(radiosity.h)
+@@ -407,11 +409,13 @@
+     /* Link good interactions to elem->intearctions */
+     if( i_len > 0 )
+         {
++            no_wait_pcs_enter();
+             LOCK(elem->elem_lock->lock);
+             prev->next = elem->interactions ;
+             elem->interactions = i_list ;
+             elem->n_interactions += i_len ;
+             UNLOCK(elem->elem_lock->lock);
++            no_wait_pcs_exit();
+         }
+ 
+ #if PATCH_ASSIGNMENT == PATCH_ASSIGNMENT_COSTBASED
+@@ -421,9 +425,11 @@
+             Patch_Cost *pc ;
+ 
+             pc = &global->patch_cost[ elem->patch->seq_no ] ;
++            no_wait_pcs_enter();
+             LOCK(pc->cost_lock->lock);
+             pc->n_total_inter += delta_n_inter ;
+             UNLOCK(pc->cost_lock->lock);
++            no_wait_pcs_exit();
+         }
+ #endif
+ }
+@@ -554,6 +560,7 @@
+     Element *enew, *ecenter ;
+     long rev_12, rev_23, rev_31 ;
+ 
++    // no_wait_pcs_enter();
+     /* Lock the element before checking the value */
+     LOCK(e->elem_lock->lock);
+ 
+@@ -561,6 +568,7 @@
+     if( ! _LEAF_ELEMENT(e) )
+         {
+             UNLOCK(e->elem_lock->lock);
++            // no_wait_pcs_exit();
+             return ;
+         }
+ 
+@@ -645,6 +653,7 @@
+ 
+     /* Unlock the element */
+     UNLOCK(e->elem_lock->lock);
++    // no_wait_pcs_exit();
+ }
+ 
+ 
+@@ -700,12 +709,14 @@
+ {
+     Interaction *i_list ;
+ 
++    no_wait_pcs_enter();
+     /* Detach interactions from the list */
+     LOCK(e->elem_lock->lock);
+     i_list = e->interactions ;
+     e->interactions = (Interaction *)0 ;
+     e->n_interactions = 0 ;
+     UNLOCK(e->elem_lock->lock);
++    no_wait_pcs_exit();
+ 
+     /* For each interaction, do BF-error-analysis */
+     bf_error_analysis_list( e, i_list, process_id ) ;
+@@ -727,11 +738,13 @@
+ 
+     /* Detach interactions from the vis-undef-list. They now have their
+        visibility computed */
++    no_wait_pcs_enter();
+     LOCK(e->elem_lock->lock);
+     i_list = e->vis_undef_inter ;
+     e->vis_undef_inter = (Interaction *)0 ;
+     e->n_vis_undef_inter = 0 ;
+     UNLOCK(e->elem_lock->lock);
++    no_wait_pcs_exit();
+ 
+     /* For each interaction, do BF-error-analysis */
+     bf_error_analysis_list( e, i_list, process_id ) ;
+@@ -825,6 +838,7 @@
+     while( e != 0 )
+         {
+             /* Get radiosity of the child and add to my radiosity */
++            no_wait_pcs_enter();
+             LOCK(e->elem_lock->lock);
+             e->rad_subtree.r += ec->rad_subtree.r * (float)0.25 ;
+             e->rad_subtree.g += ec->rad_subtree.g * (float)0.25 ;
+@@ -832,6 +846,7 @@
+             e->join_counter-- ;
+             join_flag = (e->join_counter == 0) ;
+             UNLOCK(e->elem_lock->lock);
++            no_wait_pcs_exit();
+ 
+             if( join_flag == 0 )
+                 /* Other children are not finished. Return. */
+@@ -1028,9 +1043,11 @@
+ {
+     long leaf ;
+ 
++    no_wait_pcs_enter();
+     LOCK(elem->elem_lock->lock);
+     leaf  = _LEAF_ELEMENT(elem) ;
+     UNLOCK(elem->elem_lock->lock);
++    no_wait_pcs_exit();
+ 
+     return( leaf ) ;
+ }
+@@ -1286,11 +1303,13 @@
+ void insert_interaction(Element *elem, Interaction *inter, long process_id)
+ {
+     /* Link from patch 1 to patch 2 */
++    no_wait_pcs_enter();
+     LOCK(elem->elem_lock->lock);
+     inter->next = elem->interactions ;
+     elem->interactions = inter ;
+     elem->n_interactions++ ;
+     UNLOCK(elem->elem_lock->lock);
++    no_wait_pcs_exit();
+ }
+ 
+ 
+@@ -1298,6 +1317,7 @@
+ void delete_interaction(Element *elem, Interaction *prev, Interaction *inter, long process_id)
+ {
+     /* Remove from the list */
++    no_wait_pcs_enter();
+     LOCK(elem->elem_lock->lock);
+     if( prev == 0 )
+         elem->interactions = inter->next ;
+@@ -1305,6 +1325,7 @@
+         prev->next = inter->next ;
+     elem->n_interactions-- ;
+     UNLOCK(elem->elem_lock->lock);
++    no_wait_pcs_exit();
+ 
+     /* Return to the free list */
+     free_interaction( inter, process_id ) ;
+@@ -1315,16 +1336,19 @@
+ void insert_vis_undef_interaction(Element *elem, Interaction *inter, long process_id)
+ {
+     /* Link from patch 1 to patch 2 */
++    no_wait_pcs_enter();
+     LOCK(elem->elem_lock->lock);
+     inter->next = elem->vis_undef_inter ;
+     elem->vis_undef_inter = inter ;
+     elem->n_vis_undef_inter++ ;
+     UNLOCK(elem->elem_lock->lock);
++    no_wait_pcs_exit();
+ }
+ 
+ void delete_vis_undef_interaction(Element *elem, Interaction *prev, Interaction *inter, long process_id)
+ {
+     /* Remove from the list */
++    no_wait_pcs_enter();
+     LOCK(elem->elem_lock->lock);
+     if( prev == 0 )
+         elem->vis_undef_inter = inter->next ;
+@@ -1332,6 +1356,7 @@
+         prev->next = inter->next ;
+     elem->n_vis_undef_inter-- ;
+     UNLOCK(elem->elem_lock->lock);
++    no_wait_pcs_exit();
+ }
+ 
+ 
+diff -Naur parsec-3.0-orig/ext/splash2x/apps/radiosity/src/rad_main.C parsec-3.0/ext/splash2x/apps/radiosity/src/rad_main.C
+--- parsec-3.0-orig/ext/splash2x/apps/radiosity/src/rad_main.C	2021-01-15 15:03:53.174571923 -0500
++++ parsec-3.0/ext/splash2x/apps/radiosity/src/rad_main.C	2020-12-08 03:54:23.542405648 -0500
+@@ -326,7 +326,6 @@
+             }
+ 
+             /*	print_fork_time(0) ; */
+-
+             print_statistics( stdout, 0 ) ;
+         }
+     else
+@@ -836,6 +835,8 @@
+     long process_id;
+     long rad_start, refine_done, vertex_start, vertex_done;
+ 
++    // no_wait_pcs_enter();
++
+     LOCK(global->index_lock);
+     process_id = global->index++;
+     UNLOCK(global->index_lock);
+@@ -892,6 +893,7 @@
+         timing[process_id]->vertex_time = vertex_done - vertex_start;
+         timing[process_id]->wait_time = vertex_start - refine_done;
+     }
++    // no_wait_pcs_exit();
+ 
+ }
+ 
+diff -Naur parsec-3.0-orig/ext/splash2x/apps/radiosity/src/rad_main.C.rej parsec-3.0/ext/splash2x/apps/radiosity/src/rad_main.C.rej
+--- parsec-3.0-orig/ext/splash2x/apps/radiosity/src/rad_main.C.rej	2021-01-15 15:05:13.850683553 -0500
++++ parsec-3.0/ext/splash2x/apps/radiosity/src/rad_main.C.rej	1969-12-31 19:00:00.000000000 -0500
+@@ -1,18 +0,0 @@
+---- ext/splash2x/apps/radiosity/src/rad_main.C	2013-03-04 23:26:21.198905413 -0500
+-+++ ext/splash2x/apps/radiosity/src/rad_main.C	2013-03-04 23:29:44.682898367 -0500
+-@@ -22,6 +22,7 @@
+-  *
+-  ***************************************************************/
+- 
+-+#include "tern/user.h"
+- #include <stdio.h>
+- #include <string.h>
+- #if defined(SGI_GL)
+-@@ -252,6 +253,7 @@
+- #ifdef ENABLE_PARSEC_HOOKS
+- 	__parsec_roi_begin();
+- #endif
+-+            soba_init(0, n_processors, n_processors*200);
+-             CREATE(radiosity, n_processors);
+-             WAIT_FOR_END(n_processors);
+- #ifdef ENABLE_PARSEC_HOOKS
+diff -Naur parsec-3.0-orig/ext/splash2x/apps/radiosity/src/smallobj.C parsec-3.0/ext/splash2x/apps/radiosity/src/smallobj.C
+--- parsec-3.0-orig/ext/splash2x/apps/radiosity/src/smallobj.C	2013-07-28 10:39:56.000000000 -0400
++++ parsec-3.0/ext/splash2x/apps/radiosity/src/smallobj.C	2021-01-08 00:49:30.419588044 -0500
+@@ -22,6 +22,7 @@
+  *************************************************************************/
+ 
+ #include <stdio.h>
++#include "tern/user.h"
+ 
+ EXTERN_ENV;
+ 
+@@ -452,12 +453,14 @@
+     float b_ratio ;
+ 
+     /* Lock the element before checking the value */
++    // no_wait_pcs_enter();
+     LOCK(e->edge_lock->lock);
+ 
+     /* Check if the element already has children */
+     if( ! _LEAF_EDGE(e) )
+         {
+             UNLOCK(e->edge_lock->lock);
++            // no_wait_pcs_exit();
+             return ;
+         }
+ 
+@@ -485,6 +488,7 @@
+ 
+     /* Unlock the element */
+     UNLOCK(e->edge_lock->lock);
++    // no_wait_pcs_exit();
+ }
+ 
+ 
+diff -Naur parsec-3.0-orig/ext/splash2x/apps/radiosity/src/visible.C parsec-3.0/ext/splash2x/apps/radiosity/src/visible.C
+--- parsec-3.0-orig/ext/splash2x/apps/radiosity/src/visible.C	2013-07-28 10:39:56.000000000 -0400
++++ parsec-3.0/ext/splash2x/apps/radiosity/src/visible.C	2020-12-08 03:54:45.242299273 -0500
+@@ -23,6 +23,7 @@
+ 
+ #include	<stdio.h>
+ #include        <math.h>
++#include "tern/user.h"
+ 
+ EXTERN_ENV;
+ 
+@@ -751,6 +752,7 @@
+     compute_visibility_values( elem, inter, n_inter, process_id ) ;
+ 
+     /* Change visibility undef count */
++    no_wait_pcs_enter();
+     LOCK(elem->elem_lock->lock);
+     elem->n_vis_undef_inter -= n_inter ;
+     new_vis_undef_count = elem->n_vis_undef_inter ;
+@@ -762,6 +764,7 @@
+     pc->n_bsp_node += vis_struct[process_id].total_bsp_nodes_visited ;
+     UNLOCK(pc->cost_lock->lock);
+ #endif
++    no_wait_pcs_exit();
+ 
+     /* Call continuation if this is the last task finished. */
+     if( new_vis_undef_count == 0 )

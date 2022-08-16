@@ -1,0 +1,72 @@
+--- parsec-3.0-orig/pkgs/apps/fluidanimate/src/pthreads.cpp	2022-03-22 00:25:52.768766989 +0000
++++ parsec-3.0/pkgs/apps/fluidanimate/src/pthreads.cpp	2022-03-22 00:27:32.453296934 +0000
+@@ -605,8 +605,10 @@
+ 
+           int index = (ck*ny + cj)*nx + ci;
+           // this assumes that particles cannot travel more than one grid cell per time step
+-          if(border[index])
++          if(border[index]){
++            no_wait_pcs_enter();
+             pthread_mutex_lock(&mutex[index][CELL_MUTEX_ID]);
++          }
+           Cell *cell = last_cells[index];
+           int np = cnumPars[index];
+ 
+@@ -617,8 +619,10 @@
+             last_cells[index] = cell;
+           }
+           ++cnumPars[index];
+-          if(border[index])
++          if(border[index]){
+             pthread_mutex_unlock(&mutex[index][CELL_MUTEX_ID]);
++            no_wait_pcs_exit();
++          }
+ 
+           //copy source to destination particle
+           
+@@ -735,18 +739,22 @@
+ 
+                   if(border[index])
+                   {
++                    no_wait_pcs_enter();
+                     pthread_mutex_lock(&mutex[index][ipar % MUTEXES_PER_CELL]);
+                     cell->density[ipar % PARTICLES_PER_CELL] += tc;
+                     pthread_mutex_unlock(&mutex[index][ipar % MUTEXES_PER_CELL]);
++                    no_wait_pcs_exit();
+                   }
+                   else
+                     cell->density[ipar % PARTICLES_PER_CELL] += tc;
+ 
+                   if(border[indexNeigh])
+                   {
++                    no_wait_pcs_enter();
+                     pthread_mutex_lock(&mutex[indexNeigh][iparNeigh % MUTEXES_PER_CELL]);
+                     neigh->density[iparNeigh % PARTICLES_PER_CELL] += tc;
+                     pthread_mutex_unlock(&mutex[indexNeigh][iparNeigh % MUTEXES_PER_CELL]);
++                    no_wait_pcs_exit();
+                   }
+                   else
+                     neigh->density[iparNeigh % PARTICLES_PER_CELL] += tc;
+@@ -837,18 +845,22 @@
+ 
+                   if( border[index])
+                   {
++                    no_wait_pcs_enter();
+                     pthread_mutex_lock(&mutex[index][ipar % MUTEXES_PER_CELL]);
+                     cell->a[ipar % PARTICLES_PER_CELL] += acc;
+                     pthread_mutex_unlock(&mutex[index][ipar % MUTEXES_PER_CELL]);
++                    no_wait_pcs_exit();
+                   }
+                   else
+                     cell->a[ipar % PARTICLES_PER_CELL] += acc;
+ 
+                   if( border[indexNeigh])
+                   {
++                    no_wait_pcs_enter();
+                     pthread_mutex_lock(&mutex[indexNeigh][iparNeigh % MUTEXES_PER_CELL]);
+                     neigh->a[iparNeigh % PARTICLES_PER_CELL] -= acc;
+                     pthread_mutex_unlock(&mutex[indexNeigh][iparNeigh % MUTEXES_PER_CELL]);
++                    no_wait_pcs_exit();
+                   }
+                   else
+                     neigh->a[iparNeigh % PARTICLES_PER_CELL] -= acc;

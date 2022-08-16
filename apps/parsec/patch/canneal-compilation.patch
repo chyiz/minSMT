@@ -1,0 +1,9 @@
+diff -ruN parsec-2.0-orig/pkgs/kernels/canneal/src/main.cpp parsec-2.0/pkgs/kernels/canneal/src/main.cpp
+--- parsec-2.0-orig/pkgs/kernels/canneal/src/main.cpp	2021-11-02 21:16:04.019551275 -0400
++++ parsec-2.0/pkgs/kernels/canneal/src/main.cpp	2021-11-02 21:16:45.649306549 -0400
+@@ -138,4 +138,5 @@
+ {
+ 	annealer_thread* ptr = static_cast<annealer_thread*>(data);
+ 	ptr->Run();
++	return NULL;
+ }

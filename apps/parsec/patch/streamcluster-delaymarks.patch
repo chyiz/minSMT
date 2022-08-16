@@ -1,0 +1,72 @@
+--- parsec-3.0-before-patch/pkgs/kernels/streamcluster/src/streamcluster.cpp	2022-02-23 07:12:31.652240421 +0000
++++ parsec-3.0/pkgs/kernels/streamcluster/src/streamcluster.cpp	2022-02-23 07:33:53.487301071 +0000
+@@ -708,6 +708,9 @@
+   pthread_barrier_wait(barrier);
+ #endif
+   //my block
++
++  mark_task_start(1);
++
+   long bsize = points->num/nproc;
+   long k1 = bsize * pid;
+   long k2 = k1 + bsize;
+@@ -736,6 +739,8 @@
+     costs = (double*)malloc(sizeof(double)*nproc);
+   }
+ 
++  mark_task_end(1);
++
+ #ifdef ENABLE_THREADS
+   pthread_barrier_wait(barrier);
+ #endif
+@@ -748,6 +753,9 @@
+       pthread_mutex_unlock(&mutex);
+ #endif
+       if( i >= points->num ) break;
++      
++      mark_task_start(2);
++
+       for( int k = k1; k < k2; k++ )
+ 	{
+ 	  float distance = dist(points->p[i],points->p[k],points->dim);
+@@ -757,6 +765,9 @@
+ 	      points->p[k].assign=i;
+ 	    }
+ 	}
++
++      mark_task_end(2);
++
+ #ifdef ENABLE_THREADS
+       pthread_barrier_wait(barrier);
+       pthread_barrier_wait(barrier);
+@@ -776,6 +787,9 @@
+ 	pthread_mutex_unlock(&mutex);
+ 	pthread_cond_broadcast(&cond);
+ #endif
++
++  mark_task_start(2);
++
+ 	for( int k = k1; k < k2; k++ )  {
+ 	  float distance = dist(points->p[i],points->p[k],points->dim);
+ 	  if( distance*points->p[k].weight < points->p[k].cost )  {
+@@ -783,6 +797,9 @@
+ 	    points->p[k].assign=i;
+ 	  }
+ 	}
++
++  mark_task_end(2);
++
+ #ifdef ENABLE_THREADS
+ 	pthread_barrier_wait(barrier);
+ #endif
+@@ -792,6 +809,10 @@
+ #endif
+       }
+     }
++
++    mark_task_start(2);
++    mark_task_end(2);
++    
+ #ifdef ENABLE_THREADS
+     pthread_mutex_lock(&mutex);
+ #endif

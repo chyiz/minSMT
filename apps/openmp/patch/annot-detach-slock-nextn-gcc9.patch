@@ -1,0 +1,27 @@
+--- gcc-9.3.0-orig/libgomp/team.c	2021-01-05 05:03:40.731837584 +0000
++++ gcc-9.3.0/libgomp/team.c	2021-01-05 05:11:56.830348398 +0000
+@@ -30,6 +30,7 @@
+ #include "pool.h"
+ #include <stdlib.h>
+ #include <string.h>
++#include "tern/user.h"
+ 
+ #ifdef LIBGOMP_USE_PTHREADS
+ pthread_attr_t gomp_thread_attr;
+@@ -124,6 +125,8 @@
+ 	  gomp_team_barrier_wait_final (&team->barrier);
+ 	  gomp_finish_task (task);
+ 
++		tern_detach();
++
+ 	  gomp_simple_barrier_wait (&pool->threads_dock);
+ 
+ 	  local_fn = thr->fn;
+@@ -741,6 +744,7 @@
+ 			    * (nthreads - i));
+ 
+   /* Launch new threads.  */
++	slock_next_n(nthreads-i);
+   for (; i < nthreads; ++i)
+     {
+       int err;

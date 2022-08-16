@@ -1,0 +1,19 @@
+--- parsec-3.0-orig/pkgs/apps/raytrace/src/RTTL/common/RTThread.cxx	2022-02-08 04:58:21.323894053 +0000
++++ parsec-3.0/pkgs/apps/raytrace/src/RTTL/common/RTThread.cxx	2022-02-08 04:58:34.511264394 +0000
+@@ -3,6 +3,8 @@
+ 
+ #include "RTTL/common/RTThread.hxx"
+ 
++#include "tern/user.h"
++
+ /// This class extends MultiThreadedSyncPrimitive by including m_suspended member.
+ class MultiThreadedScheduler: public MultiThreadedSyncPrimitive
+ {
+@@ -132,6 +134,7 @@
+ 
+     int res;
+     //cout << "creating " << m_threads << " RENDERER THREADS" << endl;
++    slock_next_n(m_threads);
+     for (int i = 0; i < m_threads; i++) {
+       if ( (res = pthread_create(&m_thread[i], NULL, &threadFunc, (void*)i)) != 0) {
+         cerr << "can't create thread " << i;

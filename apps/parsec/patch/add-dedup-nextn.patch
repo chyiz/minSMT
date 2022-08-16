@@ -1,0 +1,42 @@
+--- parsec-3.0-orig/pkgs/kernels/dedup/src/encoder.c	2022-02-08 04:53:41.803214247 +0000
++++ parsec-3.0/pkgs/kernels/dedup/src/encoder.c	2022-02-08 04:54:09.921853067 +0000
+@@ -35,6 +35,8 @@
+ #include "rabin.h"
+ #include "mbuffer.h"
+ 
++#include "tern/user.h"
++
+ #ifdef ENABLE_PTHREADS
+ #include "queue.h"
+ #include "binheap.h"
+@@ -53,6 +55,8 @@
+ #include <pthread.h>
+ #endif //ENABLE_PTHREADS
+ 
++#include "tern/user.h"
++
+ #ifdef ENABLE_PARSEC_HOOKS
+ #include <hooks.h>
+ #endif //ENABLE_PARSEC_HOOKS
+@@ -1480,18 +1484,21 @@
+ 
+   //Create 3 thread pools for the intermediate pipeline stages
+   struct thread_args anchor_thread_args[conf->nthreads];
++  slock_next_n(conf->nthreads);
+   for (i = 0; i < conf->nthreads; i ++) {
+      anchor_thread_args[i].tid = i;
+      pthread_create(&threads_anchor[i], NULL, FragmentRefine, &anchor_thread_args[i]);
+   }
+ 
+   struct thread_args chunk_thread_args[conf->nthreads];
++  slock_next_n(conf->nthreads);
+   for (i = 0; i < conf->nthreads; i ++) {
+     chunk_thread_args[i].tid = i;
+     pthread_create(&threads_chunk[i], NULL, Deduplicate, &chunk_thread_args[i]);
+   }
+ 
+   struct thread_args compress_thread_args[conf->nthreads];
++  slock_next_n(conf->nthreads);
+   for (i = 0; i < conf->nthreads; i ++) {
+     compress_thread_args[i].tid = i;
+     pthread_create(&threads_compress[i], NULL, Compress, &compress_thread_args[i]);

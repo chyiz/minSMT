@@ -1,0 +1,195 @@
+--- parsec-3.0-before-patch/pkgs/apps/ferret/src/benchmark/ferret-pthreads.c	2022-02-23 05:47:51.938384377 +0000
++++ parsec-3.0/pkgs/apps/ferret/src/benchmark/ferret-pthreads.c	2022-02-23 05:58:08.039064351 +0000
+@@ -152,6 +152,8 @@
+ 	int r;
+ 	struct load_data *data;
+ 
++	// mark_task_start(1);
++
+ 	data = (struct load_data *)malloc(sizeof(struct load_data));
+ 	assert(data != NULL);
+ 
+@@ -166,6 +168,9 @@
+ 		*/
+ 
+ 	cnt_enqueue++;
++
++	// mark_task_end(1);
++
+ 	enqueue(&q_load_seg, data);
+ 
+ 	return 0;
+@@ -231,10 +236,14 @@
+ 	struct seg_data *seg;
+ 	struct load_data *load;
+ 
++	int count = 0;
++
+ 	while(1)
+ 	{
+ 		if(dequeue(&q_load_seg, &load) < 0)
+ 		    break;
++		if (count) ext_put_turn();
++		mark_task_start(2);
+ 		
+ 		assert(load != NULL);
+ 		seg = (struct seg_data *)calloc(1, sizeof(struct seg_data));
+@@ -249,10 +258,17 @@
+ 		free(load->RGB);
+ 		free(load);
+ 
++		count++;
++		mark_task_end(2);
++		ext_get_turn();
++
+ 		enqueue(&q_seg_extract, seg);
+ 	}
+ 
+ 	queue_signal_terminate(&q_seg_extract);
++	
++	if (count) ext_put_turn();
++
+ 	return NULL;
+ 
+ }
+@@ -262,11 +278,16 @@
+ 	struct seg_data *seg;
+ 	struct extract_data *extract;
+ 
++	int count = 0;
++
+ 	while (1)
+ 	{
+ 		if(dequeue(&q_seg_extract, &seg) < 0)
+ 		    break;
+ 		
++		if (count) ext_put_turn();
++		mark_task_start(3);
++
+ 		assert(seg != NULL);
+ 		extract = (struct extract_data *)calloc(1, sizeof(struct extract_data));
+ 
+@@ -278,10 +299,15 @@
+ 		free(seg->HSV);
+ 		free(seg);
+ 
++		count++;
++		mark_task_end(3);
++		ext_get_turn();
++
+ 		enqueue(&q_extract_vec, extract);
+ 	}
+ 
+ 	queue_signal_terminate(&q_extract_vec);
++	if (count) ext_put_turn();
+ 	return NULL;
+ }
+ 
+@@ -290,11 +316,17 @@
+ 	struct extract_data *extract;
+ 	struct vec_query_data *vec;
+ 	cass_query_t query;
++
++	int count = 0;
++
+ 	while(1)
+ 	{
+ 		if(dequeue(&q_extract_vec, &extract) < 0)
+ 		    break;
+ 		
++		if (count) ext_put_turn();
++		mark_task_start(4);
++
+ 		assert(extract != NULL);
+ 		vec = (struct vec_query_data *)calloc(1, sizeof(struct vec_query_data));
+ 		vec->name = extract->name;
+@@ -320,10 +352,17 @@
+ 		soba_wait(0);
+ 		cass_table_query(table, &query, &vec->result);
+ 
++		count++;
++		mark_task_end(4);
++		ext_get_turn();
++
+ 		enqueue(&q_vec_rank, vec);
+ 	}
+ 
+ 	queue_signal_terminate(&q_vec_rank);
++	
++	if (count) ext_put_turn();
++
+ 	return NULL;
+ }
+ 
+@@ -333,10 +372,16 @@
+ 	struct rank_data *rank;
+ 	cass_result_t *candidate;
+ 	cass_query_t query;
++
++	int count = 0;
++
+ 	while (1)
+ 	{
+ 		if(dequeue(&q_vec_rank, &vec) < 0)
+ 		    break;
++
++		if (count) ext_put_turn();
++		mark_task_start(5);
+ 		
+ 		assert(vec != NULL);
+ 
+@@ -369,20 +414,35 @@
+ 		cass_dataset_release(vec->ds);
+ 		free(vec->ds);
+ 		free(vec);
++
++		count++;
++		mark_task_end(5);
++		ext_get_turn();
++
+ 		enqueue(&q_rank_out, rank);
+ 	}
+ 
+ 	queue_signal_terminate(&q_rank_out);
++
++	if (count) ext_put_turn();
++
+ 	return NULL;
+ }
+ 
+ void *t_out (void *dummy)
+ {
+ 	struct rank_data *rank;
++
++	int count = 0;
++
+ 	while (1)
+ 	{
+ 		if(dequeue(&q_rank_out, &rank) < 0)
+ 		    break;
++
++		if (count) ext_put_turn();
++
++		mark_task_start(6);
+ 		
+ 		assert(rank != NULL);
+ 
+@@ -404,11 +464,18 @@
+ 		free(rank);
+ 
+ 		cnt_dequeue++;
++
++		count++;
++		mark_task_end(6);
++		ext_get_turn();
+ 		
+ 		fprintf(stderr, "(%d,%d)\n", cnt_enqueue, cnt_dequeue);
+ 	}
+ 
+ 	assert(cnt_enqueue == cnt_dequeue);
++
++	if (count) ext_put_turn();
++	
+ 	return NULL;
+ }
+ 
