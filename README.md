@@ -26,7 +26,7 @@ https://github.com/columbia/xtern
 change the code name. Also, we will add more copyright note into our 
 code and other documents before publicly sharing our code.
 
-Build a Docker image
+Build minSMT and Benchmarks with Docker
 ================
 We prepared a Ubuntu 20.04 Docker environment to help you compile and 
 run our experiments.
@@ -60,11 +60,11 @@ During this time, make sure you have stable internet connection,
 since the build script will also download benchmarks from their official website, 
 as well as their input files.
 
-After all is built, you can jump to the "Generate evaluation results" 
+After all is built, you can jump to the "Generate Evaluation Results" 
 section.
 
 
-Compiling minSMT and Benchmarks without Docker
+Build without Docker
 ================
 Alternatively, you may built the project directly. The build script are 
 tested under Ubuntu 16.04 and may not work on other Linux distributions.
@@ -94,7 +94,7 @@ $ cd $XTERN_ROOT
 $ ./buildall.sh
 ```
 
-Generate evaluation results
+Generate Evaluation Results
 ================
 First, switch to the evaluation folder:
 ```
@@ -145,7 +145,7 @@ It will load results.csv in the same folder by default.
 
 Customize Evaluation Configurations
 ================
-Running an individual application
+Running an Individual Benchmark
 ----------------
 You may extract a single test case from $XTERN_ROOT/eval/all-compare-with-qithread.cfg
 and save to another file, and then run it with the same evaluation script:
